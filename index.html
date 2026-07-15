@@ -62,7 +62,6 @@
       </nav>
       <div class="sidebar__footer">
         <a href="https://shop.casaglick.com/productos.html" target="_blank" rel="noopener"><span>Ver tienda</span><i data-lucide="external-link"></i></a>
-        <button class="sidebar-logout" id="logout-button" type="button"><i data-lucide="log-out"></i><span>Cerrar sesión</span></button>
         <span>Panel v1.0</span>
       </div>
     </aside>
@@ -152,6 +151,13 @@
             <label><span>Endpoint del catálogo</span><input id="api-url" type="url" value="https://segel-inventario.vercel.app/api/catalogo" /></label>
             <div class="settings-note"><strong>Sincronización en vivo</strong><p>Precio, stock y datos técnicos se consultan directamente desde el inventario. Los cambios editoriales del admin se guardan en Firebase y se sincronizan para todos los administradores y dispositivos.</p></div>
             <button class="button button--dark" id="save-settings" type="button"><i data-lucide="save"></i><span>Guardar configuración</span></button>
+            <div class="settings-session">
+              <div>
+                <strong>Sesión del administrador</strong>
+                <p>Cierra la sesión de este dispositivo para volver a la pantalla de acceso.</p>
+              </div>
+              <button class="button button--ghost settings-logout" id="logout-button" type="button"><i data-lucide="log-out"></i><span>Cerrar sesión</span></button>
+            </div>
           </div>
         </section>
       </section>

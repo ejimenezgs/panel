@@ -56,3 +56,5 @@
 @media(max-width:1050px){.catalog-global-visibility{margin-left:0;width:100%}}
 .stock-heading{display:inline-flex;align-items:center;gap:10px}.stock-heading .visibility-toggle{display:inline-block;vertical-align:middle}.stock-heading .visibility-toggle--global{width:38px;height:22px}.catalog-global-visibility{display:none!important}
 .orders-table td small{display:block;margin-top:5px;color:#8c8881}.order-status{min-width:150px;border:1px solid #ddd8cf;background:#fff;padding:9px 11px;font:500 10px Montserrat,sans-serif}.orders-panel .panel__header{align-items:center}
+
+.settings-session{margin-top:8px;padding-top:24px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:24px}.settings-session strong{display:block;margin-bottom:6px;font-size:12px}.settings-session p{margin:0;color:var(--muted);font-size:11px;line-height:1.6}.settings-logout{flex:none;color:#8f2f29;border-color:rgba(143,47,41,.28)}.settings-logout:hover{border-color:#8f2f29;background:rgba(143,47,41,.04)}@media(max-width:620px){.settings-session{align-items:flex-start;flex-direction:column}.settings-logout{width:100%;justify-content:center}}
