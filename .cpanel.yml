@@ -1,7 +1,10 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/ejimenezgs/public_html/panel/
+    - export DEPLOYPATH=/home/gyu5la0fbzjq/public_html/panel/
+
+    - /bin/mkdir -p $DEPLOYPATH
+
     - /bin/cp index.html $DEPLOYPATH
     - /bin/cp *.js $DEPLOYPATH
     - /bin/cp *.css $DEPLOYPATH
