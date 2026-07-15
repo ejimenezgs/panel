@@ -15,7 +15,7 @@
   function slugify(text){ return String(text).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
   function money(value){ return value === null ? 'Sin precio' : new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',minimumFractionDigits:2}).format(value); }
   function esc(value){ return String(value ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
-  function categoryLabel(value){ return ({poltronas:'Poltronas',sillas:'Sillas',mesas:'Mesas',sofas:'Sofás',decoracion:'Decoración',iluminacion:'Iluminación',habitacion:'Habitación'})[value] || (value ? String(value).replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) : 'Sin categoría'); }
+  function categoryLabel(value){ return ({poltronas:'Poltronas',sillas:'Sillas',mesas:'Mesas',sofas:'Sofás',decoracion:'Decoración',iluminacion:'Iluminación',habitacion:'Habitación'})[value] || (value ? String(value) : 'Sin categoría'); }
   function renderLucide(){ if(window.lucide?.createIcons) window.lucide.createIcons({attrs:{'aria-hidden':'true'}}); }
 
   async function loadCloudState(){

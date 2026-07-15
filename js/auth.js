@@ -70,7 +70,7 @@ function loadAdmin() {
   if (adminLoaded) return;
   adminLoaded = true;
   const script = document.createElement('script');
-  script.src = 'admin.js';
+  script.src = 'js/admin.js?v=3';
   script.defer = true;
   document.body.appendChild(script);
 }
@@ -106,7 +106,7 @@ icons();
 if (!isConfigured()) {
   document.body.classList.remove('auth-loading');
   document.body.classList.add('auth-signed-out');
-  setError('Falta configurar Firebase en firebase-config.js.');
+  setError('Falta configurar Firebase en js/firebase-config.js.');
   submitButton.disabled = true;
 } else {
   const app = initializeApp(config);

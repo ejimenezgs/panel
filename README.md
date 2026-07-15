@@ -1,34 +1,22 @@
 # Casa Glick Panel
 
-Panel administrativo independiente para gestionar productos y órdenes de Casa Glick.
+Panel administrativo independiente para `panel.casaglick.com`.
 
-## Dominio previsto
+## Estructura
 
-`https://panel.casaglick.com`
+- `index.html`
+- `css/admin.css`
+- `js/admin.js`
+- `js/auth.js`
+- `js/catalog-api.js`
+- `js/firebase-config.js`
+- `assets/`
+- `firestore.rules`
 
-## Tienda vinculada
+## Datos
 
-`https://shop.casaglick.com`
+La API de inventario aporta producto, precio, stock, imágenes y categoría. El panel guarda en Firestore visibilidad, nombre editorial, descripción, orden, destacado y slug.
 
-## Funciones
+## Categorías
 
-- Inicio de sesión con Firebase Authentication.
-- Lectura del catálogo desde la API de inventario.
-- Configuración editorial y visibilidad en Firestore.
-- Seguimiento de órdenes generadas desde la tienda.
-
-## Publicación
-
-Sube el contenido de este repositorio directamente a la raíz pública de `panel.casaglick.com`. El archivo `index.html` debe quedar en la raíz.
-
-## Firebase
-
-Agrega `panel.casaglick.com` en:
-
-Firebase Console → Authentication → Settings → Authorized domains
-
-Las reglas necesarias están en `firestore.rules`.
-
-## Seguridad
-
-La configuración web de Firebase es pública por diseño. No agregues al repositorio archivos de cuentas de servicio, llaves privadas ni credenciales administrativas.
+El normalizador compara todos los campos de categoría del producto y prioriza valores específicos sobre secciones generales como Interior o Exterior. Todas las mesas se agrupan en `Mesas`, excepto mesas de noche y burós, que se agrupan en `Habitación`.

@@ -198,115 +198,85 @@
     return 0;
   }
 
-  function isGenericSectionCategory(value) {
-    const text = String(value || '')
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase().replace(/\s+/g, ' ').trim();
-    return /^(interior|exterior|decoracion|habitacion|recamara|dormitorio)$/.test(text);
-  }
+  const BROAD_CATEGORY_VALUES = /^(interior|exterior|decoracion|decoración|habitacion|habitación|mobiliario|general|catalogo|catálogo)$/i;
+  const SPECIFIC_CATEGORY_VALUE = /(mesa(?:s)?(?:\s+de\s+(?:centro|comedor|noche|jardin|jardín|auxiliar|lateral))?|coffee\s+table|dining\s+table|nightstand|bur[oó](?:\s+de\s+noche)?|poltrona|sill[oó]n|butaca|silla|banco|taburete|sof[aá]|seccional|love\s*seat|cama|cabecera|l[aá]mpara|iluminaci[oó]n|candil|espejo|cuadro|florero|consola|escritorio)/i;
 
   function categoryValueScore(text) {
-    const clean = String(text || '')
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase().replace(/\s+/g, ' ').trim();
+    const clean = String(text || '').replace(/\s+/g, ' ').trim();
     if (!clean) return -1000;
-    if (isGenericSectionCategory(clean)) return -250;
-    if (/mesa(?:s)?\s+de\s+noche|bur[oó](?:s)?\s+de\s+noche|nightstand|bedside\s+table/.test(clean)) return 260;
-    if (/mesa|silla|poltrona|sillon|sillón|butaca|sofa|sofá|seccional|banco|taburete|lampara|lámpara|iluminacion|iluminación|candil|espejo|cuadro|florero|consola|escritorio|cama|cabecera|bur[oó]/.test(clean)) return 220;
+    if (BROAD_CATEGORY_VALUES.test(clean)) return -180;
+    if (SPECIFIC_CATEGORY_VALUE.test(clean)) return 180;
     return 0;
-  }
-
-  function pushCategoryCandidate(list, key, value, depth = 0) {
-    if (value === undefined || value === null || value === '') return;
-    const text = categoryText(value).replace(/\s+/g, ' ').trim();
-    if (!text) return;
-    const keyScore = categoryKeyScore(key);
-    const valueScore = categoryValueScore(text);
-    list.push({ text, score: keyScore + valueScore - depth * 4, depth });
-
-    // Category objects frequently contain both a broad department (EXTERIOR)
-    // and a specific child category (MESAS DE CENTRO). Inspect every child so
-    // the specific furniture category can outrank the broad section label.
-    if (value && typeof value === 'object') {
-      for (const [childKey, childValue] of Object.entries(value)) {
-        if (childValue !== value) pushCategoryCandidate(list, childKey, childValue, depth + 1);
-      }
-    }
   }
 
   function getApiCategory(raw) {
     if (!raw || typeof raw !== 'object') return '';
 
     const candidates = [];
-    const rootAliases = [
-      'categoria','category','categorias','categories','categoriaNombre','nombreCategoria',
-      'categoryName','categoriaProducto','productCategory','subcategoria','subcategory',
-      'subcategoriaNombre','nombreSubcategoria','subcategoryName','tipoMueble','tipoProducto',
-      'productType','tipoArticulo','familia','family','familiaProducto','familiaArticulo',
-      'linea','line','lineaProducto','sublinea','rubro','clasificacion','classification',
-      'departamento','grupo','grupoProducto','grupoArticulo','categoriaDescripcion',
-      'descripcionCategoria','categoryDescription'
-    ];
-
-    // Collect every root candidate instead of returning the first match. The API
-    // can expose EXTERIOR as a broad section and MESAS DE CENTRO as the actual
-    // product category in another field.
-    for (const alias of rootAliases) {
-      for (const [key, value] of Object.entries(raw)) {
-        if (normalizeKey(key) === normalizeKey(alias)) pushCategoryCandidate(candidates, key, value, 0);
-      }
-    }
-
-    const queue = [{ value: raw, depth: 0 }];
     const seen = new Set();
+    const queue = [{ value: raw, depth: 0, parentKey: '' }];
     while (queue.length) {
-      const { value, depth } = queue.shift();
+      const { value, depth, parentKey } = queue.shift();
       if (!value || typeof value !== 'object' || seen.has(value) || depth > 6) continue;
       seen.add(value);
       for (const [key, child] of Object.entries(value)) {
-        if (categoryKeyScore(key)) pushCategoryCandidate(candidates, key, child, depth);
-        if (child && typeof child === 'object') queue.push({ value: child, depth: depth + 1 });
-      }
-    }
+        const keyScore = categoryKeyScore(key);
+        if (keyScore && child !== undefined && child !== null && child !== '') {
+          const text = categoryText(child).replace(/\s+/g, ' ').trim();
+          if (text) {
+            candidates.push({
+              text,
+              score: keyScore + categoryValueScore(text) - depth * 5,
+              depth,
+              key
+            });
+          }
+        }
 
-    candidates.sort((a, b) => b.score - a.score || a.depth - b.depth || a.text.length - b.text.length);
-    const specific = candidates.find(item => !isGenericSectionCategory(item.text));
-    if (specific?.text) return specific.text;
-    if (candidates[0]?.text) return candidates[0].text;
+        // Some inventory systems expose the specific category under custom keys.
+        // Consider only short furniture-like values, never descriptions, names or URLs.
+        if (typeof child === 'string') {
+          const clean = child.replace(/\s+/g, ' ').trim();
+          const normalizedKey = normalizeKey(key);
+          const excludedKey = /(descripcion|description|nombre|name|titulo|title|imagen|image|url|marca|brand|color|material|medida|dimension)/.test(normalizedKey);
+          if (!excludedKey && clean.length <= 80 && SPECIFIC_CATEGORY_VALUE.test(clean)) {
+            candidates.push({
+              text: clean,
+              score: 170 + Math.max(0, 20 - depth * 4),
+              depth,
+              key: parentKey ? `${parentKey}.${key}` : key
+            });
+          }
+        }
 
-    const semantic = [];
-    const walk = [raw];
-    const walked = new Set();
-    while (walk.length) {
-      const current = walk.shift();
-      if (!current || typeof current !== 'object' || walked.has(current)) continue;
-      walked.add(current);
-      for (const value of Object.values(current)) {
-        if (value && typeof value === 'object') walk.push(value);
-        else if (typeof value === 'string' && !/^https?:\/\//i.test(value)) {
-          const clean = value.replace(/\s+/g, ' ').trim();
-          if (categoryValueScore(clean) >= 200) semantic.push(clean);
+        if (child && typeof child === 'object') {
+          queue.push({ value: child, depth: depth + 1, parentKey: key });
         }
       }
     }
-    return semantic.sort((a, b) => categoryValueScore(b) - categoryValueScore(a) || a.length - b.length)[0] || '';
+
+    candidates.sort((a, b) =>
+      b.score - a.score ||
+      a.depth - b.depth ||
+      a.text.length - b.text.length
+    );
+    return candidates[0]?.text || '';
   }
 
   function normalizeCategory(apiCategory) {
     const text = String(apiCategory || '')
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
-    // Every kind of table is grouped under Mesas, except bedside/night tables,
-    // which belong to Habitación.
-    if (/mesa(?:s)?\s+de\s+noche|bur[oó](?:s)?\s+de\s+noche|nightstand|bedside\s+table/.test(text)) return 'habitacion';
-    if (/mesa|coffee\s+table|comedor|consola|escritorio|buro|bur[oó]/.test(text)) return 'mesas';
+    // Mesas de noche belong to Habitación. Every other table type belongs to Mesas.
+    if (/mesa(?:s)?\s+de\s+noche|mesa(?:s)?\s+nocturna|nightstand|bur[oó](?:\s+de\s+noche)?/.test(text)) return 'habitacion';
+    if (/mesa|coffee\s+table|dining\s+table|consola|escritorio/.test(text)) return 'mesas';
     if (/poltrona|sillon individual|butaca/.test(text)) return 'poltronas';
     if (/silla|banco|taburete/.test(text)) return 'sillas';
-    if (/sofa|seccional|love seat/.test(text)) return 'sofas';
-    if (/cama|cabecera|recamara|habitacion|dormitorio/.test(text)) return 'habitacion';
+    if (/sofa|seccional|love\s*seat/.test(text)) return 'sofas';
+    if (/cama|cabecera|recamara|dormitorio/.test(text)) return 'habitacion';
     if (/lampara|iluminacion|candil/.test(text)) return 'iluminacion';
     if (/decor|espejo|cuadro|florero|accesorio/.test(text)) return 'decoracion';
-    return text && !isGenericSectionCategory(text) ? slugify(text) : '';
+    return '';
   }
 
   function normalizeProduct(raw, index = 0) {
