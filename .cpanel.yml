@@ -2,4 +2,7 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/ejimenezgs/public_html/panel/
-    - /bin/cp -R . $DEPLOYPATH
+    - /bin/cp index.html $DEPLOYPATH
+    - /bin/cp *.js $DEPLOYPATH
+    - /bin/cp *.css $DEPLOYPATH
+    - /bin/cp -R assets $DEPLOYPATH
