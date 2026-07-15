@@ -198,28 +198,57 @@
     return 0;
   }
 
+  const BROAD_SECTION_VALUES = new Set([
+    'interior', 'exterior', 'decoracion', 'decoración', 'habitacion', 'habitación',
+    'indoor', 'outdoor', 'home', 'muebles', 'mobiliario', 'catalogo', 'catálogo'
+  ]);
+
+  function cleanCategoryValue(value) {
+    return categoryText(value).replace(/\s+/g, ' ').trim();
+  }
+
+  function normalizedCategoryValue(value) {
+    return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  }
+
+  function isBroadSectionValue(value) {
+    return BROAD_SECTION_VALUES.has(normalizedCategoryValue(value));
+  }
+
+  function isFurnitureCategoryValue(value) {
+    const text = normalizedCategoryValue(value);
+    return /mesa(?:s)?(?:\s+de\s+centro)?|coffee\s+table|poltrona|sillon|butaca|silla|banco|taburete|sofa|seccional|love\s*seat|cama|cabecera|bur[oó]|consola|escritorio|lampara|iluminacion|candil|espejo|cuadro|florero|accesorio/.test(text);
+  }
+
   function getApiCategory(raw) {
     if (!raw || typeof raw !== 'object') return '';
 
-    // The API category at product root always wins. This avoids selecting a
-    // category-like field from an image, warehouse, price list or variant.
+    // The inventory endpoint may expose a broad section (INTERIOR / EXTERIOR)
+    // in `categoria`, while the actual product category is stored in
+    // `subcategoria`, `familia`, `linea`, etc. Collect every candidate and
+    // prefer a concrete furniture type over a broad merchandising section.
     const rootAliases = [
-      'categoria','category','categorias','categories','categoriaNombre','nombreCategoria',
-      'categoryName','categoriaProducto','productCategory','subcategoria','subcategory',
-      'familia','family','familiaProducto','linea','line','lineaProducto','rubro',
-      'clasificacion','classification','departamento','grupo','grupoProducto',
-      'tipoProducto','productType','tipoArticulo','grupoArticulo','familiaArticulo',
-      'categoriaDescripcion','descripcionCategoria','categoryDescription'
+      'subcategoria','subcategory','subcategorias','subcategories',
+      'categoriaProducto','productCategory','categoriaNombre','nombreCategoria',
+      'categoryName','categoriaDescripcion','descripcionCategoria','categoryDescription',
+      'familia','family','familiaProducto','familiaArticulo',
+      'linea','line','lineaProducto','tipoProducto','productType','tipoArticulo',
+      'grupoArticulo','grupoProducto','rubro','clasificacion','classification',
+      'categoria','category','categorias','categories','departamento','grupo'
     ];
-    for (const alias of rootAliases) {
-      const match = Object.entries(raw).find(([key]) => normalizeKey(key) === normalizeKey(alias));
-      if (match && match[1] !== undefined && match[1] !== null && match[1] !== '') {
-        const text = categoryText(match[1]).replace(/\s+/g, ' ').trim();
-        if (text) return text;
-      }
-    }
 
     const candidates = [];
+    for (const alias of rootAliases) {
+      const match = Object.entries(raw).find(([key]) => normalizeKey(key) === normalizeKey(alias));
+      if (!match || match[1] === undefined || match[1] === null || match[1] === '') continue;
+      const text = cleanCategoryValue(match[1]);
+      if (!text) continue;
+      let score = categoryKeyScore(alias) + 25;
+      if (isFurnitureCategoryValue(text)) score += 100;
+      if (isBroadSectionValue(text)) score -= 120;
+      candidates.push({ text, score, depth: 0 });
+    }
+
     const queue = [{ value: raw, depth: 0 }];
     const seen = new Set();
     while (queue.length) {
@@ -227,19 +256,25 @@
       if (!value || typeof value !== 'object' || seen.has(value) || depth > 5) continue;
       seen.add(value);
       for (const [key, child] of Object.entries(value)) {
-        const score = categoryKeyScore(key);
-        if (score && child !== undefined && child !== null && child !== '') {
-          const text = categoryText(child).replace(/\s+/g, ' ').trim();
-          if (text) candidates.push({ text, score: score - depth * 4, depth });
+        const keyScore = categoryKeyScore(key);
+        if (keyScore && child !== undefined && child !== null && child !== '') {
+          const text = cleanCategoryValue(child);
+          if (text) {
+            let score = keyScore - depth * 4;
+            if (isFurnitureCategoryValue(text)) score += 100;
+            if (isBroadSectionValue(text)) score -= 120;
+            candidates.push({ text, score, depth });
+          }
         }
         if (child && typeof child === 'object') queue.push({ value: child, depth: depth + 1 });
       }
     }
+
     candidates.sort((a, b) => b.score - a.score || a.depth - b.depth || a.text.length - b.text.length);
+    const specific = candidates.find(candidate => !isBroadSectionValue(candidate.text));
+    if (specific?.text) return specific.text;
     if (candidates[0]?.text) return candidates[0].text;
 
-    // Last-resort semantic detection for APIs that expose the category under a
-    // custom key. It only recognizes known furniture category values.
     const semantic = [];
     const walk = [raw];
     const walked = new Set();
@@ -251,7 +286,7 @@
         if (value && typeof value === 'object') walk.push(value);
         else if (typeof value === 'string' && !/^https?:\/\//i.test(value)) {
           const clean = value.replace(/\s+/g, ' ').trim();
-          if (/mesa(?:s)?\s+de\s+centro|coffee\s+table|poltrona|sillon|sillón|butaca|silla|banco|taburete|mesa|buro|buró|consola|escritorio|sofa|sofá|seccional|love seat|lampara|lámpara|iluminacion|iluminación|candil|decoracion|decoración|espejo|cuadro|florero/i.test(clean)) semantic.push(clean);
+          if (isFurnitureCategoryValue(clean)) semantic.push(clean);
         }
       }
     }
@@ -259,19 +294,10 @@
   }
 
   function normalizeCategory(apiCategory) {
-    const text = String(apiCategory || '')
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-
-    // La categoría siempre nace del API. Solo se agrupan subcategorías equivalentes
-    // dentro de las categorías públicas de Casa Glick.
-    if (/mesa(?:s)?\s+de\s+centro|mesa(?:s)?\s+centro|coffee\s+table/.test(text)) return 'mesas';
-    if (/poltrona|sillon individual|butaca/.test(text)) return 'poltronas';
-    if (/silla|banco|taburete/.test(text)) return 'sillas';
-    if (/mesa|buro|consola|escritorio/.test(text)) return 'mesas';
-    if (/sofa|seccional|love seat/.test(text)) return 'sofas';
-    if (/lampara|iluminacion|candil/.test(text)) return 'iluminacion';
-    if (/decor|espejo|cuadro|florero|accesorio/.test(text)) return 'decoracion';
-    return text ? slugify(text) : '';
+    // Preserve the inventory category instead of collapsing it into broad
+    // storefront groups. This keeps values such as “Mesas de Centro”,
+    // “Sillas” and “Poltronas” exactly identifiable in the Panel.
+    return cleanCategoryValue(apiCategory);
   }
 
   function normalizeProduct(raw, index = 0) {
