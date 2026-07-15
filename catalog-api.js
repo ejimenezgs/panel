@@ -198,80 +198,79 @@
     return 0;
   }
 
-  const BROAD_SECTION_VALUES = new Set([
-    'interior', 'exterior', 'decoracion', 'decoración', 'habitacion', 'habitación',
-    'indoor', 'outdoor', 'home', 'muebles', 'mobiliario', 'catalogo', 'catálogo'
-  ]);
-
-  function cleanCategoryValue(value) {
-    return categoryText(value).replace(/\s+/g, ' ').trim();
+  function isGenericSectionCategory(value) {
+    const text = String(value || '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase().replace(/\s+/g, ' ').trim();
+    return /^(interior|exterior|decoracion|habitacion|recamara|dormitorio)$/.test(text);
   }
 
-  function normalizedCategoryValue(value) {
-    return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  function categoryValueScore(text) {
+    const clean = String(text || '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase().replace(/\s+/g, ' ').trim();
+    if (!clean) return -1000;
+    if (isGenericSectionCategory(clean)) return -250;
+    if (/mesa(?:s)?\s+de\s+noche|bur[oó](?:s)?\s+de\s+noche|nightstand|bedside\s+table/.test(clean)) return 260;
+    if (/mesa|silla|poltrona|sillon|sillón|butaca|sofa|sofá|seccional|banco|taburete|lampara|lámpara|iluminacion|iluminación|candil|espejo|cuadro|florero|consola|escritorio|cama|cabecera|bur[oó]/.test(clean)) return 220;
+    return 0;
   }
 
-  function isBroadSectionValue(value) {
-    return BROAD_SECTION_VALUES.has(normalizedCategoryValue(value));
-  }
+  function pushCategoryCandidate(list, key, value, depth = 0) {
+    if (value === undefined || value === null || value === '') return;
+    const text = categoryText(value).replace(/\s+/g, ' ').trim();
+    if (!text) return;
+    const keyScore = categoryKeyScore(key);
+    const valueScore = categoryValueScore(text);
+    list.push({ text, score: keyScore + valueScore - depth * 4, depth });
 
-  function isFurnitureCategoryValue(value) {
-    const text = normalizedCategoryValue(value);
-    return /mesa(?:s)?(?:\s+de\s+centro)?|coffee\s+table|poltrona|sillon|butaca|silla|banco|taburete|sofa|seccional|love\s*seat|cama|cabecera|bur[oó]|consola|escritorio|lampara|iluminacion|candil|espejo|cuadro|florero|accesorio/.test(text);
+    // Category objects frequently contain both a broad department (EXTERIOR)
+    // and a specific child category (MESAS DE CENTRO). Inspect every child so
+    // the specific furniture category can outrank the broad section label.
+    if (value && typeof value === 'object') {
+      for (const [childKey, childValue] of Object.entries(value)) {
+        if (childValue !== value) pushCategoryCandidate(list, childKey, childValue, depth + 1);
+      }
+    }
   }
 
   function getApiCategory(raw) {
     if (!raw || typeof raw !== 'object') return '';
 
-    // The inventory endpoint may expose a broad section (INTERIOR / EXTERIOR)
-    // in `categoria`, while the actual product category is stored in
-    // `subcategoria`, `familia`, `linea`, etc. Collect every candidate and
-    // prefer a concrete furniture type over a broad merchandising section.
+    const candidates = [];
     const rootAliases = [
-      'subcategoria','subcategory','subcategorias','subcategories',
-      'categoriaProducto','productCategory','categoriaNombre','nombreCategoria',
-      'categoryName','categoriaDescripcion','descripcionCategoria','categoryDescription',
-      'familia','family','familiaProducto','familiaArticulo',
-      'linea','line','lineaProducto','tipoProducto','productType','tipoArticulo',
-      'grupoArticulo','grupoProducto','rubro','clasificacion','classification',
-      'categoria','category','categorias','categories','departamento','grupo'
+      'categoria','category','categorias','categories','categoriaNombre','nombreCategoria',
+      'categoryName','categoriaProducto','productCategory','subcategoria','subcategory',
+      'subcategoriaNombre','nombreSubcategoria','subcategoryName','tipoMueble','tipoProducto',
+      'productType','tipoArticulo','familia','family','familiaProducto','familiaArticulo',
+      'linea','line','lineaProducto','sublinea','rubro','clasificacion','classification',
+      'departamento','grupo','grupoProducto','grupoArticulo','categoriaDescripcion',
+      'descripcionCategoria','categoryDescription'
     ];
 
-    const candidates = [];
+    // Collect every root candidate instead of returning the first match. The API
+    // can expose EXTERIOR as a broad section and MESAS DE CENTRO as the actual
+    // product category in another field.
     for (const alias of rootAliases) {
-      const match = Object.entries(raw).find(([key]) => normalizeKey(key) === normalizeKey(alias));
-      if (!match || match[1] === undefined || match[1] === null || match[1] === '') continue;
-      const text = cleanCategoryValue(match[1]);
-      if (!text) continue;
-      let score = categoryKeyScore(alias) + 25;
-      if (isFurnitureCategoryValue(text)) score += 100;
-      if (isBroadSectionValue(text)) score -= 120;
-      candidates.push({ text, score, depth: 0 });
+      for (const [key, value] of Object.entries(raw)) {
+        if (normalizeKey(key) === normalizeKey(alias)) pushCategoryCandidate(candidates, key, value, 0);
+      }
     }
 
     const queue = [{ value: raw, depth: 0 }];
     const seen = new Set();
     while (queue.length) {
       const { value, depth } = queue.shift();
-      if (!value || typeof value !== 'object' || seen.has(value) || depth > 5) continue;
+      if (!value || typeof value !== 'object' || seen.has(value) || depth > 6) continue;
       seen.add(value);
       for (const [key, child] of Object.entries(value)) {
-        const keyScore = categoryKeyScore(key);
-        if (keyScore && child !== undefined && child !== null && child !== '') {
-          const text = cleanCategoryValue(child);
-          if (text) {
-            let score = keyScore - depth * 4;
-            if (isFurnitureCategoryValue(text)) score += 100;
-            if (isBroadSectionValue(text)) score -= 120;
-            candidates.push({ text, score, depth });
-          }
-        }
+        if (categoryKeyScore(key)) pushCategoryCandidate(candidates, key, child, depth);
         if (child && typeof child === 'object') queue.push({ value: child, depth: depth + 1 });
       }
     }
 
     candidates.sort((a, b) => b.score - a.score || a.depth - b.depth || a.text.length - b.text.length);
-    const specific = candidates.find(candidate => !isBroadSectionValue(candidate.text));
+    const specific = candidates.find(item => !isGenericSectionCategory(item.text));
     if (specific?.text) return specific.text;
     if (candidates[0]?.text) return candidates[0].text;
 
@@ -286,18 +285,28 @@
         if (value && typeof value === 'object') walk.push(value);
         else if (typeof value === 'string' && !/^https?:\/\//i.test(value)) {
           const clean = value.replace(/\s+/g, ' ').trim();
-          if (isFurnitureCategoryValue(clean)) semantic.push(clean);
+          if (categoryValueScore(clean) >= 200) semantic.push(clean);
         }
       }
     }
-    return semantic.sort((a, b) => a.length - b.length)[0] || '';
+    return semantic.sort((a, b) => categoryValueScore(b) - categoryValueScore(a) || a.length - b.length)[0] || '';
   }
 
   function normalizeCategory(apiCategory) {
-    // Preserve the inventory category instead of collapsing it into broad
-    // storefront groups. This keeps values such as “Mesas de Centro”,
-    // “Sillas” and “Poltronas” exactly identifiable in the Panel.
-    return cleanCategoryValue(apiCategory);
+    const text = String(apiCategory || '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
+    // Every kind of table is grouped under Mesas, except bedside/night tables,
+    // which belong to Habitación.
+    if (/mesa(?:s)?\s+de\s+noche|bur[oó](?:s)?\s+de\s+noche|nightstand|bedside\s+table/.test(text)) return 'habitacion';
+    if (/mesa|coffee\s+table|comedor|consola|escritorio|buro|bur[oó]/.test(text)) return 'mesas';
+    if (/poltrona|sillon individual|butaca/.test(text)) return 'poltronas';
+    if (/silla|banco|taburete/.test(text)) return 'sillas';
+    if (/sofa|seccional|love seat/.test(text)) return 'sofas';
+    if (/cama|cabecera|recamara|habitacion|dormitorio/.test(text)) return 'habitacion';
+    if (/lampara|iluminacion|candil/.test(text)) return 'iluminacion';
+    if (/decor|espejo|cuadro|florero|accesorio/.test(text)) return 'decoracion';
+    return text && !isGenericSectionCategory(text) ? slugify(text) : '';
   }
 
   function normalizeProduct(raw, index = 0) {
