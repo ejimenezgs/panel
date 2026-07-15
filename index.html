@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel | Casa Glick</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css?v=1" />
+</head>
+<body class="auth-signed-out">
+  <section class="login-screen" id="login-screen" aria-labelledby="login-title">
+    <div class="login-card">
+      <a class="login-brand" href="https://shop.casaglick.com/" aria-label="Ir a Casa Glick">
+        <img src="assets/logo.svg" alt="Casa Glick" />
+      </a>
+      <div class="login-copy">
+        <p class="eyebrow">ACCESO ADMINISTRATIVO</p>
+        <h1 id="login-title">Iniciar sesión</h1>
+        <p>Ingresa con una cuenta autorizada para gestionar el catálogo.</p>
+      </div>
+      <form class="login-form" id="login-form" novalidate>
+        <label>
+          <span>Correo electrónico</span>
+          <div class="login-input">
+            <i data-lucide="mail"></i>
+            <input id="login-email" type="email" autocomplete="username" required placeholder="correo@empresa.com" />
+          </div>
+        </label>
+        <label>
+          <span>Contraseña</span>
+          <div class="login-input">
+            <i data-lucide="lock-keyhole"></i>
+            <input id="login-password" type="password" autocomplete="current-password" required placeholder="••••••••" />
+            <button class="password-toggle" id="password-toggle" type="button" aria-label="Mostrar contraseña"><i data-lucide="eye"></i></button>
+          </div>
+        </label>
+        <p class="login-error" id="login-error" role="alert" aria-live="polite"></p>
+        <button class="button button--dark login-submit" id="login-submit" type="submit">
+          <span>Ingresar</span><i data-lucide="arrow-right"></i>
+        </button>
+      </form>
+      <p class="login-help">El acceso se administra directamente desde Firebase Authentication.</p>
+    </div>
+  </section>
+  <div class="admin-shell">
+    <aside class="sidebar">
+      <a href="https://shop.casaglick.com/" class="sidebar__brand" aria-label="Ir a Casa Glick">
+        <img src="assets/logo.svg" alt="Casa Glick" />
+      </a>
+      <nav class="sidebar__nav" aria-label="Navegación del administrador">
+        <button class="nav-item is-active" type="button" data-view="products">
+          <i class="nav-item__icon" data-lucide="package"></i><span>Productos</span>
+        </button>
+        <button class="nav-item" type="button" data-view="orders">
+          <i class="nav-item__icon" data-lucide="clipboard-list"></i><span>Órdenes</span>
+        </button>
+        <button class="nav-item" type="button" data-view="settings">
+          <i class="nav-item__icon" data-lucide="settings-2"></i><span>Configuración</span>
+        </button>
+      </nav>
+      <div class="sidebar__footer">
+        <a href="https://shop.casaglick.com/productos.html" target="_blank" rel="noopener"><span>Ver tienda</span><i data-lucide="external-link"></i></a>
+        <button class="sidebar-logout" id="logout-button" type="button"><i data-lucide="log-out"></i><span>Cerrar sesión</span></button>
+        <span>Panel v1.0</span>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">CASA GLICK</p>
+          <h1>Administración de productos</h1>
+        </div>
+        <div class="topbar__actions">
+          <div class="sync-state" id="sync-state"><span></span> Conectando inventario</div>
+          <button class="button button--ghost" id="refresh-products" type="button"><i data-lucide="refresh-cw"></i><span>Actualizar</span></button>
+        </div>
+      </header>
+
+      <section class="view is-active" id="view-products">
+        <div class="summary-grid" aria-label="Resumen del catálogo">
+          <article class="summary-card"><span>Productos recibidos</span><strong id="stat-total">—</strong></article>
+          <article class="summary-card"><span>Publicados en web</span><strong id="stat-published">—</strong></article>
+          <article class="summary-card"><span>Con stock</span><strong id="stat-stock">—</strong></article>
+          <article class="summary-card"><span>Sin precio</span><strong id="stat-no-price">—</strong></article>
+        </div>
+
+        <section class="panel products-panel">
+          <div class="panel__header">
+            <div>
+              <h2>Catálogo</h2>
+              <p>Los datos de inventario son de solo lectura. La presentación web se configura aquí.</p>
+            </div>
+            <div class="panel__tools">
+              <label class="search-field">
+                <i data-lucide="search"></i>
+                <input id="product-search" type="search" placeholder="Buscar por nombre o código" autocomplete="off" />
+              </label>
+              <select id="brand-filter" aria-label="Filtrar por marca">
+                <option value="all">Todas las marcas</option>
+              </select>
+              <select id="category-filter" aria-label="Filtrar por categoría">
+                <option value="all">Todas las categorías</option>
+              </select>
+              <select id="status-filter" aria-label="Filtrar por publicación">
+                <option value="all">Todos</option>
+                <option value="published">Publicados</option>
+                <option value="hidden">Ocultos</option>
+                <option value="in">Disponibles</option>
+                <option value="out">Sin stock</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="products-table">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Código</th>
+                  <th>Categoría web</th>
+                  <th>Precio</th>
+                  <th>Stock</th>
+                  <th><span class="stock-heading">Visible <label class="visibility-toggle visibility-toggle--global" title="Activar o desactivar todos los productos"><input id="toggle-all-products" type="checkbox" aria-label="Mostrar todos los productos en la web"><i></i></label></span></th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="products-body"></tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="empty-state" hidden>
+            <strong>No encontramos productos</strong>
+            <span>Prueba cambiando los filtros o actualizando el inventario.</span>
+          </div>
+        </section>
+      </section>
+
+
+      <section class="view" id="view-orders">
+        <section class="panel orders-panel">
+          <div class="panel__header"><div><h2>Órdenes</h2><p>Solicitudes generadas desde la bolsa de Casa Glick.</p></div><button class="button button--ghost" id="refresh-orders" type="button"><i data-lucide="refresh-cw"></i><span>Actualizar</span></button></div>
+          <div class="table-wrap"><table class="products-table orders-table"><thead><tr><th>Folio</th><th>Cliente</th><th>Fecha</th><th>Total</th><th>Estado</th><th></th></tr></thead><tbody id="orders-body"></tbody></table></div>
+          <div class="empty-state" id="orders-empty" hidden><strong>No hay órdenes todavía</strong><span>Las solicitudes aparecerán aquí cuando un cliente finalice su bolsa.</span></div>
+        </section>
+      </section>
+      <section class="view" id="view-settings">
+        <section class="panel settings-panel">
+          <div class="panel__header"><div><h2>Fuente de inventario</h2><p>Configuración de la conexión con el catálogo de Grupo Segel.</p></div></div>
+          <div class="settings-form">
+            <label><span>Endpoint del catálogo</span><input id="api-url" type="url" value="https://segel-inventario.vercel.app/api/catalogo" /></label>
+            <div class="settings-note"><strong>Sincronización en vivo</strong><p>Precio, stock y datos técnicos se consultan directamente desde el inventario. Los cambios editoriales del admin se guardan en Firebase y se sincronizan para todos los administradores y dispositivos.</p></div>
+            <button class="button button--dark" id="save-settings" type="button"><i data-lucide="save"></i><span>Guardar configuración</span></button>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+  <aside class="product-drawer" id="product-drawer" aria-hidden="true" aria-label="Editar producto">
+    <div class="drawer__header">
+      <div><p class="eyebrow">EDITAR PRODUCTO</p><h2 id="drawer-title">Producto</h2></div>
+      <button class="drawer__close icon-button" id="close-drawer" type="button" aria-label="Cerrar"><i data-lucide="x"></i></button>
+    </div>
+    <div class="drawer__body">
+      <section class="inventory-preview">
+        <div class="inventory-preview__image"><img id="drawer-image" src="" alt="" /></div>
+        <div><span id="drawer-code">—</span><strong id="drawer-price">—</strong><small id="drawer-stock">—</small></div>
+      </section>
+
+      <div class="drawer-tabs" role="tablist">
+        <button class="is-active" type="button" data-drawer-tab="web">Presentación web</button>
+        <button type="button" data-drawer-tab="inventory">Datos de inventario</button>
+      </div>
+
+      <section class="drawer-tab is-active" id="drawer-tab-web">
+        <form id="product-form" class="edit-form">
+          <label class="toggle-row"><span><strong>Mostrar en la web</strong><small>Permite que este producto aparezca en el catálogo público.</small></span><input id="field-published" type="checkbox" /><i></i></label>
+          <label><span>Categoría del inventario</span><input id="field-category-api" type="text" readonly aria-readonly="true"></label>
+          <label><span>Nombre mostrado</span><input id="field-display-name" type="text" placeholder="Usar nombre de inventario" /></label>
+          <label><span>Descripción editorial</span><textarea id="field-description" rows="5" placeholder="Usar descripción de inventario"></textarea></label>
+          <div class="form-grid"><label><span>Orden</span><input id="field-order" type="number" min="0" step="1" value="0" /></label><label class="check-field"><input id="field-featured" type="checkbox" /><span>Producto destacado</span></label></div>
+          <label><span>Slug / URL</span><input id="field-slug" type="text" placeholder="nombre-del-producto" /></label>
+        </form>
+      </section>
+
+      <section class="drawer-tab" id="drawer-tab-inventory">
+        <dl class="inventory-list" id="inventory-list"></dl>
+      </section>
+    </div>
+    <div class="drawer__footer">
+      <button class="button button--ghost" id="preview-product" type="button"><i data-lucide="eye"></i><span>Vista previa</span></button>
+      <button class="button button--dark" id="save-product" type="button"><i data-lucide="save"></i><span>Guardar cambios</span></button>
+    </div>
+  </aside>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="catalog-api.js?v=1"></script>
+  <script src="firebase-config.js"></script>
+  <script type="module" src="auth.js?v=1"></script>
+</body>
+</html>
