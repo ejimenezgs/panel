@@ -198,8 +198,8 @@
     return 0;
   }
 
-  const BROAD_CATEGORY_VALUES = /^(interior|exterior|decoracion|decoración|habitacion|habitación|mobiliario|general|catalogo|catálogo)$/i;
-  const SPECIFIC_CATEGORY_VALUE = /(mesa(?:s)?(?:\s+de\s+(?:centro|comedor|noche|jardin|jardín|auxiliar|lateral))?|coffee\s+table|dining\s+table|nightstand|bur[oó](?:\s+de\s+noche)?|poltrona|sill[oó]n|butaca|silla|banco|taburete|sof[aá]|seccional|love\s*seat|cama|cabecera|l[aá]mpara|iluminaci[oó]n|candil|espejo|cuadro|florero|consola|escritorio)/i;
+  const BROAD_CATEGORY_VALUES = /^(interior|habitacion|habitación|mobiliario|general|catalogo|catálogo)$/i;
+  const SPECIFIC_CATEGORY_VALUE = /(mesa(?:s)?(?:\s+de\s+(?:centro|comedor|noche|jardin|jardín|auxiliar|lateral))?|coffee\s+table|dining\s+table|nightstand|bur[oó](?:\s+de\s+noche)?|poltrona|sill[oó]n(?:es)?(?:\s+individual(?:es)?)?|butaca|silla(?:s)?(?:\s+alta(?:s)?)?|banco|taburete|bar\s*stool|counter\s*stool|sof[aá]|seccional|love\s*seat|ottoman|pouf|puf|reposapi[eé]s|camastro|tumbona|chaise\s*longue|sun\s*lounger|cama|cabecera|luminaria|l[aá]mpara|iluminaci[oó]n|candil|decoraci[oó]n|decorativo|espejo|cuadro|florero|accesorio|consola|escritorio|exterior)/i;
 
   function categoryValueScore(text) {
     const clean = String(text || '').replace(/\s+/g, ' ').trim();
@@ -270,12 +270,16 @@
     // Mesas de noche belong to Habitación. Every other table type belongs to Mesas.
     if (/mesa(?:s)?\s+de\s+noche|mesa(?:s)?\s+nocturna|nightstand|bur[oó](?:\s+de\s+noche)?/.test(text)) return 'habitacion';
     if (/mesa|coffee\s+table|dining\s+table|consola|escritorio/.test(text)) return 'mesas';
-    if (/poltrona|sillon individual|butaca/.test(text)) return 'poltronas';
-    if (/silla|banco|taburete/.test(text)) return 'sillas';
+    if (/camastro|tumbona|chaise\s*longue|sun\s*lounger/.test(text)) return 'exterior';
+    if (/poltrona|sillon(?:es)?\s+individual(?:es)?|butaca/.test(text)) return 'poltronas';
+    if (/ottoman|pouf|puf|reposapies/.test(text)) return 'ottoman';
+    if (/silla(?:s)?\s+alta(?:s)?|bar\s*stool|counter\s*stool|banco|taburete/.test(text)) return 'sillas';
+    if (/silla/.test(text)) return 'sillas';
     if (/sofa|seccional|love\s*seat/.test(text)) return 'sofas';
     if (/cama|cabecera|recamara|dormitorio/.test(text)) return 'habitacion';
-    if (/lampara|iluminacion|candil/.test(text)) return 'iluminacion';
+    if (/luminaria|lampara|iluminacion|candil/.test(text)) return 'iluminacion';
     if (/decor|espejo|cuadro|florero|accesorio/.test(text)) return 'decoracion';
+    if (/exterior|jardin|terraza/.test(text)) return 'exterior';
     return '';
   }
 
