@@ -297,33 +297,59 @@
     const apiCategory = getApiCategory(raw);
     const category = normalizeCategory(apiCategory);
 
-    const listPrice = parsePrice(findDeep(raw, [
-      'precioLista','listPrice','regularPrice','precioRegular','precioPublico','msrp',
-      'precioOriginal','originalPrice','precioAntes','beforePrice'
-    ]));
+    const promotionNode = findDeep(raw, [
+      'promocion','promotion','promo','oferta','sale','descuento','discount'
+    ]);
+    const promotionObject = isObject(promotionNode) ? promotionNode : null;
+
+    // The inventory may send the promotional amount as a named field or as
+    // `precio`/`price` inside a nested promotion object.
     const directSalePrice = parsePrice(findDeep(raw, [
       'precioPromocion','precioPromo','promotionPrice','promotionalPrice','promoPrice',
-      'precioOferta','offerPrice','salePrice','discountPrice','precioDescuento','precioEspecial','specialPrice'
+      'precioOferta','offerPrice','salePrice','discountPrice','precioDescuento',
+      'precioEspecial','specialPrice','precioConDescuento','finalPrice','precioFinal'
     ]));
-    const fallbackPrice = parsePrice(findDeep(raw, ['precio','price','precioVenta','precioPublico','precioLista']));
+    const nestedSalePrice = promotionObject ? parsePrice(findDeep(promotionObject, [
+      'precioPromocion','precioPromo','promotionPrice','promoPrice','precioOferta',
+      'offerPrice','salePrice','discountPrice','precioDescuento','precioEspecial',
+      'specialPrice','precioConDescuento','finalPrice','precioFinal','precio','price','monto','amount'
+    ])) : null;
+
+    const listPrice = parsePrice(findDeep(raw, [
+      'precioLista','listPrice','regularPrice','precioRegular','precioPublico','msrp',
+      'precioOriginal','originalPrice','precioAntes','beforePrice','basePrice','precioBase'
+    ]));
+    const fallbackPrice = parsePrice(findDeep(raw, [
+      'precio','price','precioVenta','sellingPrice','precioPublico','precioLista'
+    ]));
+    const nestedOriginalPrice = promotionObject ? parsePrice(findDeep(promotionObject, [
+      'precioOriginal','originalPrice','precioAntes','beforePrice','precioLista',
+      'listPrice','regularPrice','precioRegular','basePrice','precioBase'
+    ])) : null;
     const discountPercent = parsePrice(findDeep(raw, [
       'porcentajeDescuento','discountPercent','descuentoPorcentaje','porcentajePromo','promoPercent'
     ]));
     const promotionFlag = findDeep(raw, [
-      'promocion','promotion','enPromocion','isPromotion','isPromo','oferta','onSale','sale'
+      'enPromocion','isPromotion','isPromo','promocionActiva','promotionActive',
+      'ofertaActiva','onSale','tienePromocion','hasPromotion'
     ]);
 
-    let originalPrice = listPrice;
-    let salePrice = directSalePrice;
-    if (salePrice === null && originalPrice !== null && discountPercent !== null && discountPercent > 0 && discountPercent < 100) {
-      salePrice = originalPrice * (1 - discountPercent / 100);
-    }
+    let salePrice = directSalePrice ?? nestedSalePrice;
+    let originalPrice = listPrice ?? nestedOriginalPrice;
+
+    // Common payload: root `precio` is the old price and nested promotion.price
+    // is the amount currently charged.
     if (salePrice !== null && originalPrice === null && fallbackPrice !== null && fallbackPrice > salePrice) {
       originalPrice = fallbackPrice;
     }
-    const hasPromotion = Boolean(
-      salePrice !== null && originalPrice !== null && salePrice < originalPrice
-    ) || (/^(true|1|si|sí|yes|activo|active)$/i.test(String(promotionFlag || '').trim()) && salePrice !== null);
+    if (salePrice === null && originalPrice !== null && discountPercent !== null && discountPercent > 0 && discountPercent < 100) {
+      salePrice = originalPrice * (1 - discountPercent / 100);
+    }
+
+    const promotionEnabled = /^(true|1|si|sí|yes|activo|active)$/i.test(String(promotionFlag || '').trim())
+      || Boolean(promotionObject);
+    const hasPromotion = salePrice !== null && originalPrice !== null && salePrice < originalPrice
+      && (promotionEnabled || directSalePrice !== null || nestedSalePrice !== null);
     const price = hasPromotion ? salePrice : (fallbackPrice ?? salePrice ?? originalPrice);
 
     return {
@@ -342,7 +368,6 @@
       originalPrice: hasPromotion ? originalPrice : null,
       salePrice: hasPromotion ? salePrice : null,
       hasPromotion,
-      discountPercent: hasPromotion && originalPrice > 0 ? Math.round((1 - salePrice / originalPrice) * 100) : null,
       stock: parseStock(raw),
       images: images.length ? images : [FALLBACK_IMAGE],
       slug: slugify(`${name}-${code}`)
