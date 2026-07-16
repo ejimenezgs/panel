@@ -296,6 +296,36 @@
 
     const apiCategory = getApiCategory(raw);
     const category = normalizeCategory(apiCategory);
+
+    const listPrice = parsePrice(findDeep(raw, [
+      'precioLista','listPrice','regularPrice','precioRegular','precioPublico','msrp',
+      'precioOriginal','originalPrice','precioAntes','beforePrice'
+    ]));
+    const directSalePrice = parsePrice(findDeep(raw, [
+      'precioPromocion','precioPromo','promotionPrice','promotionalPrice','promoPrice',
+      'precioOferta','offerPrice','salePrice','discountPrice','precioDescuento','precioEspecial','specialPrice'
+    ]));
+    const fallbackPrice = parsePrice(findDeep(raw, ['precio','price','precioVenta','precioPublico','precioLista']));
+    const discountPercent = parsePrice(findDeep(raw, [
+      'porcentajeDescuento','discountPercent','descuentoPorcentaje','porcentajePromo','promoPercent'
+    ]));
+    const promotionFlag = findDeep(raw, [
+      'promocion','promotion','enPromocion','isPromotion','isPromo','oferta','onSale','sale'
+    ]);
+
+    let originalPrice = listPrice;
+    let salePrice = directSalePrice;
+    if (salePrice === null && originalPrice !== null && discountPercent !== null && discountPercent > 0 && discountPercent < 100) {
+      salePrice = originalPrice * (1 - discountPercent / 100);
+    }
+    if (salePrice !== null && originalPrice === null && fallbackPrice !== null && fallbackPrice > salePrice) {
+      originalPrice = fallbackPrice;
+    }
+    const hasPromotion = Boolean(
+      salePrice !== null && originalPrice !== null && salePrice < originalPrice
+    ) || (/^(true|1|si|sí|yes|activo|active)$/i.test(String(promotionFlag || '').trim()) && salePrice !== null);
+    const price = hasPromotion ? salePrice : (fallbackPrice ?? salePrice ?? originalPrice);
+
     return {
       id: code,
       raw,
@@ -308,7 +338,11 @@
       brand: String(findDeep(raw, ['marca','brand','fabricante','manufacturer','proveedorMarca']) || 'Sin marca'),
       apiCategory,
       category,
-      price: parsePrice(findDeep(raw, ['precio','price','precioVenta','salePrice','precioPublico','precioLista'])),
+      price,
+      originalPrice: hasPromotion ? originalPrice : null,
+      salePrice: hasPromotion ? salePrice : null,
+      hasPromotion,
+      discountPercent: hasPromotion && originalPrice > 0 ? Math.round((1 - salePrice / originalPrice) * 100) : null,
       stock: parseStock(raw),
       images: images.length ? images : [FALLBACK_IMAGE],
       slug: slugify(`${name}-${code}`)
