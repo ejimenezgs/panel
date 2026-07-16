@@ -60,3 +60,25 @@
 .settings-session{margin-top:8px;padding-top:24px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:24px}.settings-session strong{display:block;margin-bottom:6px;font-size:12px}.settings-session p{margin:0;color:var(--muted);font-size:11px;line-height:1.6}.settings-logout{flex:none;color:#8f2f29;border-color:rgba(143,47,41,.28)}.settings-logout:hover{border-color:#8f2f29;background:rgba(143,47,41,.04)}@media(max-width:620px){.settings-session{align-items:flex-start;flex-direction:column}.settings-logout{width:100%;justify-content:center}}
 
 .price-normal{white-space:nowrap}.price-promo{display:inline-flex;flex-direction:column;align-items:flex-end;gap:2px}.price-promo__current{font-weight:700;color:#c62828;white-space:nowrap}.price-promo__original{text-decoration:line-through;color:#9a9690;font-size:70%;line-height:1;white-space:nowrap}.inventory-preview strong del{margin-left:8px;color:#999;font:400 15px Montserrat,sans-serif}
+
+/* v7 category/price/stock corrections */
+.price-promo{display:inline-flex;flex-direction:row;align-items:baseline;justify-content:flex-start;gap:9px;white-space:nowrap}
+.price-promo__current{font-weight:700;color:#c62828;white-space:nowrap}
+.price-promo__original{text-decoration:line-through;color:#8f8b85;font-size:90%;line-height:1;white-space:nowrap}
+.stock-text{display:inline-block;padding:0;background:transparent;border-radius:0;font-size:11px;letter-spacing:0;text-transform:none;white-space:nowrap;margin-left:0}
+.stock-text.has-stock{color:#68645e}
+.stock-text.no-stock{color:#a64a3d}
+.products-table td:nth-child(5){padding-left:18px;text-align:left}
+
+
+/* v8 verified category, price and stock layout */
+.summary-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.products-table th:nth-child(4),.products-table td:nth-child(4){min-width:210px}
+.products-table th:nth-child(5),.products-table td:nth-child(5){min-width:120px;text-align:left;padding-left:28px}
+.price-promo{display:flex;flex-direction:row;align-items:baseline;justify-content:flex-start;gap:12px;width:max-content;white-space:nowrap}
+.price-promo__current{font-size:100%;font-weight:700;color:#c62828;white-space:nowrap}
+.price-promo__original{font-size:100%;font-weight:400;line-height:1.2;color:#77736d;text-decoration:line-through;white-space:nowrap;text-align:right}
+.stock-text{display:inline-block;min-width:92px;text-align:left;margin:0;padding:0;background:none;border:0;border-radius:0;font-size:11px;letter-spacing:0;text-transform:none;white-space:nowrap}
+.stock-text.has-stock,.stock-text.no-stock{background:none;color:inherit}
+@media(max-width:1050px){.summary-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:700px){.summary-grid{grid-template-columns:1fr 1fr}}

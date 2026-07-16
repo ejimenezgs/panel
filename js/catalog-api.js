@@ -260,26 +260,41 @@
       a.depth - b.depth ||
       a.text.length - b.text.length
     );
-    return candidates[0]?.text || '';
+
+    // Keep every relevant category path instead of only the highest-scoring
+    // value. Inventory payloads can expose a broad category and a specific
+    // category in separate fields; joining them lets normalizeCategory detect
+    // values such as Decoracion, Iluminacion, Exterior and Camastros reliably.
+    const unique = [];
+    const seenText = new Set();
+    for (const item of candidates) {
+      const key = item.text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+      if (!key || seenText.has(key)) continue;
+      seenText.add(key);
+      unique.push(item.text);
+      if (unique.length >= 12) break;
+    }
+    return unique.join(' / ');
   }
 
   function normalizeCategory(apiCategory) {
     const text = String(apiCategory || '')
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
-    // Mesas de noche belong to Habitación. Every other table type belongs to Mesas.
-    if (/mesa(?:s)?\s+de\s+noche|mesa(?:s)?\s+nocturna|nightstand|bur[oó](?:\s+de\s+noche)?/.test(text)) return 'habitacion';
-    if (/mesa|coffee\s+table|dining\s+table|consola|escritorio/.test(text)) return 'mesas';
-    if (/camastro|tumbona|chaise\s*longue|sun\s*lounger/.test(text)) return 'exterior';
-    if (/poltrona|sillon(?:es)?\s+individual(?:es)?|butaca/.test(text)) return 'poltronas';
-    if (/ottoman|pouf|puf|reposapies/.test(text)) return 'ottoman';
+    // Respect the main department supplied by inventory before looking for a
+    // more specific furniture word. Payloads often arrive as paths such as
+    // "Exterior / Mesas" or "Interior / Decoración / Espejos".
+    if (/(^|[\s/|>_-])(exterior|outdoor|jardin|terraza|patio)([\s/|>_-]|$)|camastro|tumbona|chaise\s*longue|sun\s*lounger/.test(text)) return 'exterior';
+    if (/(^|[\s/|>_-])(decoracion|decoraciones|decorativo|decorativa|decoration|decor)([\s/|>_-]|$)|espejo|cuadro|florero|accesorio|ornamento/.test(text)) return 'decoracion';
+    if (/(^|[\s/|>_-])(iluminacion|iluminacion interior|luminarias?|luminacion|lighting)([\s/|>_-]|$)|lampara|candil|aplique|pendiente|plafon/.test(text)) return 'iluminacion';
+    if (/(^|[\s/|>_-])(habitacion|recamara|dormitorio|bedroom)([\s/|>_-]|$)|mesa(?:s)?\s+de\s+noche|mesa(?:s)?\s+nocturna|nightstand|bur[oó](?:\s+de\s+noche)?|cama|cabecera/.test(text)) return 'habitacion';
+
+    if (/poltrona|sillon(?:es)?\s+individual(?:es)?|butaca|armchair|accent\s*chair/.test(text)) return 'poltronas';
+    if (/ottoman|pouf|puf|reposapies|reposapi[eé]s/.test(text)) return 'ottoman';
     if (/silla(?:s)?\s+alta(?:s)?|bar\s*stool|counter\s*stool|banco|taburete/.test(text)) return 'sillas';
-    if (/silla/.test(text)) return 'sillas';
+    if (/silla|chair/.test(text)) return 'sillas';
     if (/sofa|seccional|love\s*seat/.test(text)) return 'sofas';
-    if (/cama|cabecera|recamara|dormitorio/.test(text)) return 'habitacion';
-    if (/luminaria|lampara|iluminacion|candil/.test(text)) return 'iluminacion';
-    if (/decor|espejo|cuadro|florero|accesorio/.test(text)) return 'decoracion';
-    if (/exterior|jardin|terraza/.test(text)) return 'exterior';
+    if (/mesa|coffee\s+table|dining\s+table|consola|escritorio/.test(text)) return 'mesas';
     return '';
   }
 
