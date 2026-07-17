@@ -30,6 +30,7 @@ import {
   getDoc,
   getDocs,
   getFirestore,
+  onSnapshot,
   orderBy,
   query,
   serverTimestamp,
@@ -70,7 +71,7 @@ function loadAdmin() {
   if (adminLoaded) return;
   adminLoaded = true;
   const script = document.createElement('script');
-  script.src = 'js/admin.js?v=14';
+  script.src = 'js/admin.js?v=15';
   script.defer = true;
   document.body.appendChild(script);
 }
@@ -169,6 +170,17 @@ if (!isConfigured()) {
     async loadMessages() {
       const snapshot = await getDocs(query(collection(db, 'contactMessages'), orderBy('createdAt', 'desc')));
       return snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+    },
+    subscribeMessages(onChange, onError) {
+      const messagesQuery = query(collection(db, 'contactMessages'), orderBy('createdAt', 'desc'));
+      return onSnapshot(
+        messagesQuery,
+        (snapshot) => onChange(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))),
+        (error) => {
+          console.error('Messages listener error:', error);
+          if (typeof onError === 'function') onError(error);
+        }
+      );
     },
     async updateMessageStatus(messageId, status) {
       await updateDoc(doc(db, 'contactMessages', messageId), {
