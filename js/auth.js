@@ -70,7 +70,7 @@ function loadAdmin() {
   if (adminLoaded) return;
   adminLoaded = true;
   const script = document.createElement('script');
-  script.src = 'js/admin.js?v=10';
+  script.src = 'js/admin.js?v=11';
   script.defer = true;
   document.body.appendChild(script);
 }
@@ -162,6 +162,18 @@ if (!isConfigured()) {
     async updateOrderStatus(orderId, status) {
       await updateDoc(doc(db, 'orders', orderId), {
         status,
+        updatedAt: serverTimestamp(),
+        updatedBy: auth.currentUser?.email || ''
+      });
+    },
+    async loadMessages() {
+      const snapshot = await getDocs(query(collection(db, 'contactMessages'), orderBy('createdAt', 'desc')));
+      return snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+    },
+    async updateMessageStatus(messageId, status) {
+      await updateDoc(doc(db, 'contactMessages', messageId), {
+        status,
+        readAt: status === 'read' ? serverTimestamp() : null,
         updatedAt: serverTimestamp(),
         updatedBy: auth.currentUser?.email || ''
       });

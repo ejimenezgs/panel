@@ -56,6 +56,9 @@
         <button class="nav-item" type="button" data-view="orders">
           <i class="nav-item__icon" data-lucide="clipboard-list"></i><span>Órdenes</span>
         </button>
+        <button class="nav-item" type="button" data-view="messages">
+          <i class="nav-item__icon" data-lucide="message-square"></i><span>Mensajes</span><b class="nav-badge" id="messages-badge" hidden>0</b>
+        </button>
         <button class="nav-item" type="button" data-view="settings">
           <i class="nav-item__icon" data-lucide="settings-2"></i><span>Configuración</span>
         </button>
@@ -143,6 +146,34 @@
           <div class="empty-state" id="orders-empty" hidden><strong>No hay órdenes todavía</strong><span>Las solicitudes aparecerán aquí cuando un cliente finalice su bolsa.</span></div>
         </section>
       </section>
+      <section class="view" id="view-messages">
+        <section class="panel messages-panel">
+          <div class="panel__header">
+            <div><h2>Mensajes</h2><p>Consultas recibidas desde casaglick.com y shop.casaglick.com.</p></div>
+            <div class="panel__tools messages-tools">
+              <select id="message-source-filter" aria-label="Filtrar mensajes por origen">
+                <option value="all">Todos los sitios</option>
+                <option value="casaglick.com">casaglick.com</option>
+                <option value="shop.casaglick.com">shop.casaglick.com</option>
+              </select>
+              <select id="message-status-filter" aria-label="Filtrar mensajes por estado">
+                <option value="all">Todos</option>
+                <option value="unread">No leídos</option>
+                <option value="read">Leídos</option>
+              </select>
+              <button class="button button--ghost" id="refresh-messages" type="button"><i data-lucide="refresh-cw"></i><span>Actualizar</span></button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="products-table messages-table">
+              <thead><tr><th>Contacto</th><th>Mensaje</th><th>Origen</th><th>Fecha</th><th>Estado</th><th></th></tr></thead>
+              <tbody id="messages-body"></tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="messages-empty" hidden><strong>No hay mensajes todavía</strong><span>Los formularios de Casa Glick aparecerán aquí.</span></div>
+        </section>
+      </section>
+
       <section class="view" id="view-settings">
         <section class="panel settings-panel">
           <div class="panel__header"><div><h2>Fuente de inventario</h2><p>Configuración de la conexión con el catálogo de Grupo Segel.</p></div></div>
@@ -201,10 +232,30 @@
     </div>
   </aside>
 
+  <div class="message-backdrop" id="message-backdrop" hidden></div>
+  <aside class="message-drawer" id="message-drawer" aria-hidden="true" aria-label="Detalle del mensaje">
+    <div class="drawer__header">
+      <div><p class="eyebrow" id="message-drawer-source">MENSAJE</p><h2 id="message-drawer-name">Contacto</h2></div>
+      <button class="drawer__close icon-button" id="close-message-drawer" type="button" aria-label="Cerrar"><i data-lucide="x"></i></button>
+    </div>
+    <div class="message-drawer__body">
+      <div class="message-meta">
+        <div><span>Correo</span><a id="message-drawer-email" href="#">—</a></div>
+        <div><span>Teléfono</span><a id="message-drawer-phone" href="#">—</a></div>
+        <div><span>Fecha</span><strong id="message-drawer-date">—</strong></div>
+      </div>
+      <div class="message-content"><span>Mensaje</span><p id="message-drawer-text">—</p></div>
+    </div>
+    <div class="drawer__footer message-drawer__footer">
+      <button class="button button--ghost" id="message-mark-unread" type="button"><i data-lucide="mail"></i><span>Marcar no leído</span></button>
+      <a class="button button--dark" id="message-reply" href="#"><i data-lucide="reply"></i><span>Responder</span></a>
+    </div>
+  </aside>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="js/catalog-api.js?v=10"></script>
-  <script src="js/firebase-config.js?v=8"></script>
-  <script type="module" src="js/auth.js?v=10"></script>
+  <script src="js/catalog-api.js?v=11"></script>
+  <script src="js/firebase-config.js?v=11"></script>
+  <script type="module" src="js/auth.js?v=11"></script>
 </body>
 </html>
