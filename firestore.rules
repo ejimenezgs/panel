@@ -39,10 +39,8 @@ service cloud.firestore {
         && request.resource.data.message.size() >= 2
         && request.resource.data.message.size() <= 3000;
 
-      // Solo el administrador puede ver, editar o eliminar mensajes.
-      allow read, update, delete: if
-        request.auth != null
-        && request.auth.token.email == 'hello@oaxsun.tech';
+      // Cualquier usuario autenticado del panel puede ver, editar o eliminar mensajes.
+      allow read, update, delete: if request.auth != null;
     }
     match /orders/{orderId} {
       allow create: if request.resource.data.keys().hasAll(['folio','status','customer','items','total','createdAt'])
