@@ -1,6 +1,6 @@
-# Web Design sync v22
+# Web Design v23
 
-- Panel writes direct keys `hero`, `products`, `showroom`, `about`, `brands`, `contact` to `shopContent/home`.
-- Each section includes a boolean `enabled`.
-- Shop v33 reads direct keys and supports legacy `sections` as fallback.
-- Firestore project: `casaglick-439b2`.
+- Restored and retained the Web Design tab.
+- Prefills each editable field with the current production text and image paths from Shop.
+- Saves direct section objects in `shopContent/home`.
+- Cache version updated to 23, including the dynamically loaded `admin.js`.

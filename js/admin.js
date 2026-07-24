@@ -22,20 +22,28 @@
   function categoryLabel(value){ return ({poltronas:'Sillones individuales',ottoman:'Ottoman',sillas:'Sillas',mesas:'Mesas',sofas:'Sofás',exterior:'Exterior',decoracion:'Decoración',iluminacion:'Iluminación',habitacion:'Habitación'})[value] || (value ? String(value) : 'Sin categoría'); }
 
   const SHOP_SECTION_DEFINITIONS = [
-    {key:'hero',label:'Hero principal',description:'Portada superior de la tienda.',icon:'layout-template'},
-    {key:'products',label:'Productos',description:'Bloque principal del catálogo.',icon:'shopping-bag'},
-    {key:'showroom',label:'Showroom',description:'Invitación a visitar el showroom.',icon:'store'},
-    {key:'about',label:'About',description:'Presentación e historia de Casa Glick.',icon:'landmark'},
-    {key:'brands',label:'Marcas',description:'Bloque de firmas y marcas disponibles.',icon:'badge-check'},
-    {key:'contact',label:'Contacto',description:'Cierre y llamada a contacto.',icon:'message-square'}
+    {key:'hero',label:'Hero principal',description:'Portada superior de la tienda.',icon:'layout-template',defaults:{imageUrl:'assets/hero-desk.webp'}},
+    {key:'products',label:'Productos',description:'Bloque principal del catálogo.',icon:'shopping-bag',defaults:{title:'Piezas que elevan cada espacio.',description:'Explora nuestra curaduría de mobiliario y decoración para proyectos residenciales, comerciales y de hospitality.',buttonText:'Ver todo',buttonUrl:'productos.html?filter=todo'}},
+    {key:'showroom',label:'Showroom',description:'Invitación a visitar el showroom.',icon:'store',defaults:{title:'Vive CASA GLICK | en persona',description:'Descubre una selección curada de mobiliario, materiales y soluciones integrales en un espacio diseñado para inspirar cada proyecto.',imageUrl:'assets/about-materials-correct.webp',buttonText:'Visitar showroom',buttonUrl:'https://wa.me/525513004665?text=Quiero%20conocer%20el%20showroom'}},
+    {key:'about',label:'About',description:'Presentación e historia de Casa Glick.',icon:'landmark',defaults:{title:'Casa Glick',description:'Integramos diseño, fabricación, suministro e instalación para desarrollar espacios donde cada detalle responde a una misma visión.\nUn equipo que coordina cada etapa para lograr resultados consistentes y una ejecución impecable.',imageUrl:'assets/about-materials-final.webp',buttonText:'Descubre nuestro enfoque',buttonUrl:'#productos'}},
+    {key:'brands',label:'Marcas',description:'Bloque de ambientes y marcas disponibles.',icon:'badge-check',defaults:{imageUrl:'assets/lifestyle-reading-chair.webp'}},
+    {key:'contact',label:'Contacto',description:'Cierre y llamada a contacto.',icon:'message-square',defaults:{eyebrow:'Contacto',title:'Déjanos ayudarte con tu compra.',imageUrl:'assets/contact-design-worktable.png',buttonText:'Enviar'} }
   ];
   function defaultSection(def){ return {enabled:true,eyebrow:'',title:'',description:'',imageUrl:'',buttonText:'',buttonUrl:'',...def.defaults}; }
+  function fillEmptySectionFields(section, defaults){
+    const result={...section};
+    ['eyebrow','title','description','imageUrl','buttonText','buttonUrl'].forEach(field=>{
+      if(typeof result[field]!=='string' || !result[field].trim()) result[field]=defaults[field]||'';
+    });
+    return result;
+  }
   function normalizeShopContent(raw={}){
     const nestedSections=raw.sections&&typeof raw.sections==='object'?raw.sections:{};
     const sections=Object.fromEntries(SHOP_SECTION_DEFINITIONS.map(def=>{
       const directSection=raw[def.key]&&typeof raw[def.key]==='object'?raw[def.key]:{};
       const nestedSection=nestedSections[def.key]&&typeof nestedSections[def.key]==='object'?nestedSections[def.key]:{};
-      return [def.key,{...defaultSection(def),...nestedSection,...directSection}];
+      const defaults=defaultSection(def);
+      return [def.key,fillEmptySectionFields({...defaults,...nestedSection,...directSection},defaults)];
     }));
     return {sections};
   }
