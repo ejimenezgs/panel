@@ -198,7 +198,14 @@
     $('#close-drawer').addEventListener('click',closeDrawer); $('#drawer-backdrop').addEventListener('click',closeDrawer); $('#save-product').addEventListener('click',saveCurrent);
     $('#preview-product').addEventListener('click',()=>{ if(!state.current)return; const p=productView(state.current); window.open(`https://shop.casaglick.com/producto.html?product=${encodeURIComponent(p.code)}`,'_blank'); });
     $$('.drawer-tabs button').forEach(btn=>btn.addEventListener('click',()=>{ $$('.drawer-tabs button').forEach(x=>x.classList.toggle('is-active',x===btn)); $$('.drawer-tab').forEach(tab=>tab.classList.toggle('is-active',tab.id===`drawer-tab-${btn.dataset.drawerTab}`)); }));
-    $$('.nav-item').forEach(btn=>btn.addEventListener('click',()=>{ $$('.nav-item').forEach(x=>x.classList.toggle('is-active',x===btn)); $$('.view').forEach(v=>v.classList.toggle('is-active',v.id===`view-${btn.dataset.view}`)); if(btn.dataset.view==='orders')loadOrders(); }));
+    $$('.nav-item').forEach(btn=>btn.addEventListener('click',()=>{
+      $$('.nav-item').forEach(x=>x.classList.toggle('is-active',x===btn));
+      $$('.view').forEach(v=>v.classList.toggle('is-active',v.id===`view-${btn.dataset.view}`));
+      const titles={products:'Administración de productos',orders:'Órdenes',messages:'Mensajes','web-design':'Web Design',settings:'Configuración'};
+      const heading=$('.topbar h1'); if(heading) heading.textContent=titles[btn.dataset.view]||'Casa Glick Panel';
+      if(btn.dataset.view==='orders')loadOrders();
+      if(btn.dataset.view==='web-design')loadShopContent();
+    }));
     $('#orders-body')?.addEventListener('change',async e=>{ if(!e.target.matches('[data-order-status]'))return; const select=e.target; select.disabled=true; try{ await cloud.updateOrderStatus(select.dataset.orderStatus,select.value); const order=state.orders.find(x=>x.id===select.dataset.orderStatus); if(order)order.status=select.value; toast('Estado de la orden actualizado.'); }catch(error){console.error(error);toast('No se pudo actualizar la orden.');}finally{select.disabled=false;} });
     $('#message-source-filter')?.addEventListener('change',applyMessageFilters); $('#message-status-filter')?.addEventListener('change',applyMessageFilters); $('#messages-body')?.addEventListener('click',e=>{ const btn=e.target.closest('[data-open-message]'); const row=e.target.closest('[data-message-row]'); const id=btn?.dataset.openMessage||row?.dataset.messageRow; if(id)openMessage(id); }); $('#close-message-drawer')?.addEventListener('click',closeMessage); $('#message-backdrop')?.addEventListener('click',closeMessage);
     $('#orders-body')?.addEventListener('click',e=>{ const btn=e.target.closest('[data-order-whatsapp]'); if(!btn)return; const phone=String(btn.dataset.orderWhatsapp||'').replace(/\D/g,''); const text=encodeURIComponent(`Hola, damos seguimiento a tu orden ${btn.dataset.orderFolio} de Casa Glick.`); window.open(`https://wa.me/${phone}?text=${text}`,'_blank'); });

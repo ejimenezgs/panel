@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/admin.css?v=21" />
+  <link rel="stylesheet" href="css/admin.css?v=22" />
 </head>
 <body class="auth-signed-out">
   <section class="login-screen" id="login-screen" aria-labelledby="login-title">
@@ -58,6 +58,9 @@
         </button>
         <button class="nav-item" type="button" data-view="messages">
           <i class="nav-item__icon" data-lucide="message-square"></i><span>Mensajes</span><b class="nav-badge" id="messages-badge" hidden>0</b>
+        </button>
+        <button class="nav-item" type="button" data-view="web-design">
+          <i class="nav-item__icon" data-lucide="palette"></i><span>Web Design</span>
         </button>
         <button class="nav-item" type="button" data-view="settings">
           <i class="nav-item__icon" data-lucide="settings-2"></i><span>Configuración</span>
@@ -174,6 +177,22 @@
         </section>
       </section>
 
+      <section class="view" id="view-web-design">
+        <section class="panel web-design-panel">
+          <div class="panel__header">
+            <div>
+              <h2>Web Design</h2>
+              <p>Administra la visibilidad y el contenido de las secciones de shop.casaglick.com sin modificar su estructura.</p>
+            </div>
+            <span class="shop-content-settings__status" id="shop-content-status">Sin guardar</span>
+          </div>
+          <div class="shop-content-settings shop-content-settings--standalone">
+            <div class="shop-content-list" id="shop-content-list"></div>
+            <button class="button button--dark" id="save-shop-content" type="button"><i data-lucide="save"></i><span>Guardar cambios</span></button>
+          </div>
+        </section>
+      </section>
+
       <section class="view" id="view-settings">
         <section class="panel settings-panel">
           <div class="panel__header"><div><h2>Fuente de inventario</h2><p>Configuración de la conexión con el catálogo de Grupo Segel.</p></div></div>
@@ -197,17 +216,6 @@
             </div>
             <button class="button button--dark" id="save-settings" type="button"><i data-lucide="save"></i><span>Guardar configuración</span></button>
 
-            <div class="shop-content-settings">
-              <div class="shop-content-settings__heading">
-                <div>
-                  <strong>Contenido de Shop</strong>
-                  <p>Activa o desactiva bloques de shop.casaglick.com y edita sus textos e imágenes sin cambiar su estructura.</p>
-                </div>
-                <span class="shop-content-settings__status" id="shop-content-status">Sin guardar</span>
-              </div>
-              <div class="shop-content-list" id="shop-content-list"></div>
-              <button class="button button--dark" id="save-shop-content" type="button"><i data-lucide="save"></i><span>Guardar contenido de Shop</span></button>
-            </div>
             <div class="settings-session">
               <div>
                 <strong>Sesión del administrador</strong>
@@ -281,8 +289,8 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="js/catalog-api.js?v=21"></script>
-  <script src="js/firebase-config.js?v=21"></script>
-  <script type="module" src="js/auth.js?v=21"></script>
+  <script src="js/catalog-api.js?v=22"></script>
+  <script src="js/firebase-config.js?v=22"></script>
+  <script type="module" src="js/auth.js?v=22"></script>
 </body>
 </html>
