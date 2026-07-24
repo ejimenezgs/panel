@@ -3,7 +3,7 @@
   const LEGACY_STORAGE_KEY = 'casaGlickAdminOverridesV1';
   const LEGACY_SETTINGS_KEY = 'casaGlickAdminSettingsV1';
   const FALLBACK_IMAGE = 'assets/product-placeholder-cg.png';
-  const state = { products: [], filtered: [], current: null, overrides: {}, settings: { apiUrl: DEFAULT_API }, orders: [], messages: [], filteredMessages: [], currentMessage: null };
+  const state = { products: [], filtered: [], current: null, overrides: {}, settings: { apiUrl: DEFAULT_API, stripeEnabled: false }, orders: [], messages: [], filteredMessages: [], currentMessage: null };
   const $ = (s, root=document) => root.querySelector(s);
   const $$ = (s, root=document) => [...root.querySelectorAll(s)];
   const cloud = window.CasaGlickFirestore;
@@ -29,7 +29,7 @@
     const legacyOverrides = loadLocal(LEGACY_STORAGE_KEY, {});
     const legacySettings = loadLocal(LEGACY_SETTINGS_KEY, {});
     state.overrides = cloudOverrides || {};
-    state.settings = { apiUrl: DEFAULT_API, ...(cloudSettings || {}) };
+    state.settings = { apiUrl: DEFAULT_API, stripeEnabled: false, ...(cloudSettings || {}) };
 
     if(!Object.keys(state.overrides).length && Object.keys(legacyOverrides).length){
       const entries = Object.entries(legacyOverrides).map(([id,data])=>({id,data}));
@@ -143,7 +143,31 @@
     $('#orders-body')?.addEventListener('change',async e=>{ if(!e.target.matches('[data-order-status]'))return; const select=e.target; select.disabled=true; try{ await cloud.updateOrderStatus(select.dataset.orderStatus,select.value); const order=state.orders.find(x=>x.id===select.dataset.orderStatus); if(order)order.status=select.value; toast('Estado de la orden actualizado.'); }catch(error){console.error(error);toast('No se pudo actualizar la orden.');}finally{select.disabled=false;} });
     $('#message-source-filter')?.addEventListener('change',applyMessageFilters); $('#message-status-filter')?.addEventListener('change',applyMessageFilters); $('#messages-body')?.addEventListener('click',e=>{ const btn=e.target.closest('[data-open-message]'); const row=e.target.closest('[data-message-row]'); const id=btn?.dataset.openMessage||row?.dataset.messageRow; if(id)openMessage(id); }); $('#close-message-drawer')?.addEventListener('click',closeMessage); $('#message-backdrop')?.addEventListener('click',closeMessage);
     $('#orders-body')?.addEventListener('click',e=>{ const btn=e.target.closest('[data-order-whatsapp]'); if(!btn)return; const phone=String(btn.dataset.orderWhatsapp||'').replace(/\D/g,''); const text=encodeURIComponent(`Hola, damos seguimiento a tu orden ${btn.dataset.orderFolio} de Casa Glick.`); window.open(`https://wa.me/${phone}?text=${text}`,'_blank'); });
-    $('#api-url').value=state.settings.apiUrl||DEFAULT_API; $('#save-settings').addEventListener('click',async()=>{ const apiUrl=$('#api-url').value.trim()||DEFAULT_API; try{ await cloud.saveSettings({apiUrl}); state.settings.apiUrl=apiUrl; toast('Configuración guardada en Firebase.'); loadProducts(); }catch(error){console.error(error);toast('No se pudo guardar la configuración.');} });
+    const stripeToggle=$('#stripe-enabled');
+    const updateStripeModeUI=()=>{
+      const enabled=Boolean(stripeToggle?.checked);
+      const label=enabled?'Stripe':'Orden + WhatsApp';
+      if($('#stripe-mode-status')) $('#stripe-mode-status').textContent=label;
+      if($('#checkout-mode-label')) $('#checkout-mode-label').textContent=label;
+      $('#stripe-mode-status')?.classList.toggle('is-enabled',enabled);
+    };
+    $('#api-url').value=state.settings.apiUrl||DEFAULT_API;
+    if(stripeToggle){ stripeToggle.checked=state.settings.stripeEnabled===true; stripeToggle.addEventListener('change',updateStripeModeUI); }
+    updateStripeModeUI();
+    $('#save-settings').addEventListener('click',async()=>{
+      const apiUrl=$('#api-url').value.trim()||DEFAULT_API;
+      const stripeEnabled=Boolean(stripeToggle?.checked);
+      const button=$('#save-settings');
+      button.disabled=true;
+      try{
+        await cloud.saveSettings({apiUrl,stripeEnabled,checkoutMode:stripeEnabled?'stripe':'assisted'});
+        state.settings.apiUrl=apiUrl;
+        state.settings.stripeEnabled=stripeEnabled;
+        toast(stripeEnabled?'Stripe activado en la configuración de Shop.':'Flujo de orden y WhatsApp activado.');
+        loadProducts();
+      }catch(error){console.error(error);toast('No se pudo guardar la configuración.');}
+      finally{button.disabled=false;}
+    });
     document.addEventListener('keydown',e=>{ if(e.key==='Escape'){closeDrawer();closeMessage();} });
   }
   bind(); renderLucide(); startMessagesListener(); loadProducts();

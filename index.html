@@ -180,6 +180,21 @@
           <div class="settings-form">
             <label><span>Endpoint del catálogo</span><input id="api-url" type="url" value="https://segel-inventario.vercel.app/api/catalogo" /></label>
             <div class="settings-note"><strong>Sincronización en vivo</strong><p>Precio, stock y datos técnicos se consultan directamente desde el inventario. Los cambios editoriales del admin se guardan en Firebase y se sincronizan para todos los administradores y dispositivos.</p></div>
+            <div class="settings-commerce">
+              <div class="settings-commerce__heading">
+                <div><strong>Modo de compra</strong><p>Define cómo finalizarán sus compras los clientes de shop.casaglick.com.</p></div>
+                <span class="settings-commerce__status" id="stripe-mode-status">Orden + WhatsApp</span>
+              </div>
+              <label class="toggle-row settings-commerce__toggle">
+                <span><strong>Activar Stripe</strong><small>Al activarlo, Shop podrá utilizar el flujo de pago en línea con Stripe. Al desactivarlo, conservará el flujo actual de orden y atención por WhatsApp.</small></span>
+                <input id="stripe-enabled" type="checkbox" aria-label="Activar pagos con Stripe" />
+                <i></i>
+              </label>
+              <div class="settings-commerce__modes">
+                <div><span>Modo actual</span><strong id="checkout-mode-label">Orden + WhatsApp</strong></div>
+                <div><span>Campo en Firebase</span><code>stripeEnabled</code></div>
+              </div>
+            </div>
             <button class="button button--dark" id="save-settings" type="button"><i data-lucide="save"></i><span>Guardar configuración</span></button>
             <div class="settings-session">
               <div>
@@ -254,8 +269,8 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="js/catalog-api.js?v=15"></script>
-  <script src="js/firebase-config.js?v=15"></script>
-  <script type="module" src="js/auth.js?v=15"></script>
+  <script src="js/catalog-api.js?v=16"></script>
+  <script src="js/firebase-config.js?v=16"></script>
+  <script type="module" src="js/auth.js?v=16"></script>
 </body>
 </html>
