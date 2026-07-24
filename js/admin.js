@@ -23,13 +23,34 @@
   function categoryData(product){ const category=product?.category||''; return {category,categoryLabel:categoryLabel(category),apiCategory:product?.apiCategory||''}; }
   function renderLucide(){ if(window.lucide?.createIcons) window.lucide.createIcons({attrs:{'aria-hidden':'true'}}); }
 
+  function syncSettingsControls(){
+    const apiInput=$('#api-url');
+    const stripeToggle=$('#stripe-enabled');
+    const enabled=state.settings.stripeEnabled===true || state.settings.checkoutMode==='stripe';
+    if(apiInput) apiInput.value=state.settings.apiUrl||DEFAULT_API;
+    if(stripeToggle) stripeToggle.checked=enabled;
+    const label=enabled?'Stripe':'Orden + WhatsApp';
+    if($('#stripe-mode-status')) $('#stripe-mode-status').textContent=label;
+    if($('#checkout-mode-label')) $('#checkout-mode-label').textContent=label;
+    $('#stripe-mode-status')?.classList.toggle('is-enabled',enabled);
+  }
+
   async function loadCloudState(){
     if(!cloud) throw new Error('Firestore no está disponible');
     const [cloudOverrides, cloudSettings] = await Promise.all([cloud.loadOverrides(), cloud.loadSettings()]);
     const legacyOverrides = loadLocal(LEGACY_STORAGE_KEY, {});
     const legacySettings = loadLocal(LEGACY_SETTINGS_KEY, {});
     state.overrides = cloudOverrides || {};
-    state.settings = { apiUrl: DEFAULT_API, stripeEnabled: false, ...(cloudSettings || {}) };
+    const savedSettings = cloudSettings || {};
+    const savedStripeEnabled = savedSettings.stripeEnabled === true || savedSettings.checkoutMode === 'stripe';
+    state.settings = {
+      apiUrl: DEFAULT_API,
+      stripeEnabled: savedStripeEnabled,
+      checkoutMode: savedStripeEnabled ? 'stripe' : 'assisted',
+      ...savedSettings,
+      stripeEnabled: savedStripeEnabled
+    };
+    syncSettingsControls();
 
     if(!Object.keys(state.overrides).length && Object.keys(legacyOverrides).length){
       const entries = Object.entries(legacyOverrides).map(([id,data])=>({id,data}));
@@ -151,9 +172,8 @@
       if($('#checkout-mode-label')) $('#checkout-mode-label').textContent=label;
       $('#stripe-mode-status')?.classList.toggle('is-enabled',enabled);
     };
-    $('#api-url').value=state.settings.apiUrl||DEFAULT_API;
-    if(stripeToggle){ stripeToggle.checked=state.settings.stripeEnabled===true; stripeToggle.addEventListener('change',updateStripeModeUI); }
-    updateStripeModeUI();
+    syncSettingsControls();
+    if(stripeToggle){ stripeToggle.addEventListener('change',updateStripeModeUI); }
     $('#save-settings').addEventListener('click',async()=>{
       const apiUrl=$('#api-url').value.trim()||DEFAULT_API;
       const stripeEnabled=Boolean(stripeToggle?.checked);
@@ -163,6 +183,8 @@
         await cloud.saveSettings({apiUrl,stripeEnabled,checkoutMode:stripeEnabled?'stripe':'assisted'});
         state.settings.apiUrl=apiUrl;
         state.settings.stripeEnabled=stripeEnabled;
+        state.settings.checkoutMode=stripeEnabled?'stripe':'assisted';
+        syncSettingsControls();
         toast(stripeEnabled?'Stripe activado en la configuración de Shop.':'Flujo de orden y WhatsApp activado.');
         loadProducts();
       }catch(error){console.error(error);toast('No se pudo guardar la configuración.');}
