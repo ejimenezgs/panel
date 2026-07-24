@@ -31,8 +31,18 @@
   ];
   function defaultSection(def){ return {enabled:true,eyebrow:'',title:'',description:'',imageUrl:'',buttonText:'',buttonUrl:'',...def.defaults}; }
   function normalizeShopContent(raw={}){
-    const sections=raw.sections||{};
-    return {sections:Object.fromEntries(SHOP_SECTION_DEFINITIONS.map(def=>[def.key,{...defaultSection(def),...(sections[def.key]||{})}]))};
+    const nestedSections=raw.sections&&typeof raw.sections==='object'?raw.sections:{};
+    const sections=Object.fromEntries(SHOP_SECTION_DEFINITIONS.map(def=>{
+      const directSection=raw[def.key]&&typeof raw[def.key]==='object'?raw[def.key]:{};
+      const nestedSection=nestedSections[def.key]&&typeof nestedSections[def.key]==='object'?nestedSections[def.key]:{};
+      return [def.key,{...defaultSection(def),...nestedSection,...directSection}];
+    }));
+    return {sections};
+  }
+  function shopContentPayload(content){
+    const normalized=normalizeShopContent(content);
+    const direct=Object.fromEntries(SHOP_SECTION_DEFINITIONS.map(def=>[def.key,{...normalized.sections[def.key]}]));
+    return {schemaVersion:3,...direct};
   }
   function renderShopContent(){
     const list=$('#shop-content-list'); if(!list)return;
@@ -205,7 +215,7 @@
     $('#shop-content-list')?.addEventListener('click',e=>{ const header=e.target.closest('[data-toggle-section-card]'); if(!header||e.target.closest('label'))return; header.closest('.shop-section-card')?.classList.toggle('is-open'); });
     $('#shop-content-list')?.addEventListener('input',e=>{ const input=e.target.closest('[data-section-field]'); if(!input)return; const status=$('#shop-content-status'); if(status){status.textContent='Cambios sin guardar';status.classList.remove('is-saved');} if(input.dataset.sectionField==='imageUrl'){ const preview=$(`[data-section-preview="${input.dataset.sectionKey}"]`); if(preview)preview.src=input.value.trim()||FALLBACK_IMAGE; } });
     $('#shop-content-list')?.addEventListener('change',async e=>{ const fileInput=e.target.closest('[data-section-upload]'); if(!fileInput||!fileInput.files?.[0])return; const key=fileInput.dataset.sectionUpload; const progress=$(`[data-section-progress="${key}"]`); const file=fileInput.files[0]; if(progress)progress.textContent='Subiendo imagen…'; fileInput.disabled=true; try{ const url=await cloud.uploadShopContentImage(key,file); const urlInput=$(`[data-section-key="${key}"][data-section-field="imageUrl"]`); const preview=$(`[data-section-preview="${key}"]`); if(urlInput)urlInput.value=url; if(preview)preview.src=url; if(progress)progress.textContent='Imagen lista. Guarda los cambios.'; const status=$('#shop-content-status'); if(status){status.textContent='Cambios sin guardar';status.classList.remove('is-saved');} }catch(error){console.error(error);if(progress)progress.textContent='No se pudo subir la imagen.';}finally{fileInput.disabled=false;fileInput.value='';} });
-    $('#save-shop-content')?.addEventListener('click',async()=>{ const button=$('#save-shop-content'); const data=collectShopContent(); button.disabled=true; try{ await cloud.saveShopContent(data); state.shopContent=data; const status=$('#shop-content-status'); if(status){status.textContent='Guardado';status.classList.add('is-saved');} toast('Contenido de Shop guardado en Firebase.'); }catch(error){console.error(error);toast('No se pudo guardar el contenido de Shop.');}finally{button.disabled=false;} });
+    $('#save-shop-content')?.addEventListener('click',async()=>{ const button=$('#save-shop-content'); const data=collectShopContent(); const payload=shopContentPayload(data); button.disabled=true; try{ await cloud.saveShopContent(payload); state.shopContent=normalizeShopContent(payload); const status=$('#shop-content-status'); if(status){status.textContent='Guardado';status.classList.add('is-saved');} toast('Contenido y visibilidad de Shop guardados en Firebase.'); }catch(error){console.error(error);toast('No se pudo guardar el contenido de Shop.');}finally{button.disabled=false;} });
     $('#save-settings').addEventListener('click',async()=>{
       const apiUrl=$('#api-url').value.trim()||DEFAULT_API;
       const stripeEnabled=Boolean(stripeToggle?.checked);

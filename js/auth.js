@@ -168,7 +168,7 @@ if (!isConfigured()) {
         ...data,
         updatedAt: serverTimestamp(),
         updatedBy: auth.currentUser?.email || ''
-      }, { merge: true });
+      });
     },
     async uploadShopContentImage(sectionKey, file) {
       const safeName = String(file.name || 'image').replace(/[^a-zA-Z0-9._-]+/g, '-');

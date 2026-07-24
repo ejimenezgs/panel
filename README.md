@@ -24,6 +24,6 @@ El normalizador compara todos los campos de categoría del producto y prioriza v
 ## v18 - Administracion de contenido de Shop
 
 La seccion Configuracion incluye administracion de bloques para shop.casaglick.com.
-Los datos se guardan en Firestore en `shopContent/home`, dentro del objeto `sections`.
+Los datos se guardan en Firestore en `shopContent/home` como objetos directos (`hero`, `products`, `showroom`, `about`, `brands`, `contact`), que es el esquema leído por Shop.
 Las imagenes pueden cargarse a Firebase Storage bajo `shop-content/{sectionKey}/` o indicarse mediante URL.
 Publicar `firestore.rules` y `storage.rules` desde Firebase Console antes de usar la funcion de subida.
