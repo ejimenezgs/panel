@@ -3,7 +3,7 @@
   const LEGACY_STORAGE_KEY = 'casaGlickAdminOverridesV1';
   const LEGACY_SETTINGS_KEY = 'casaGlickAdminSettingsV1';
   const FALLBACK_IMAGE = 'assets/product-placeholder-cg.png';
-  const state = { products: [], filtered: [], current: null, overrides: {}, settings: { apiUrl: DEFAULT_API, stripeEnabled: false }, orders: [], messages: [], filteredMessages: [], currentMessage: null };
+  const state = { products: [], filtered: [], current: null, overrides: {}, settings: { apiUrl: DEFAULT_API, stripeEnabled: false }, orders: [], messages: [], filteredMessages: [], currentMessage: null, shopContent: {} };
   const $ = (s, root=document) => root.querySelector(s);
   const $$ = (s, root=document) => [...root.querySelectorAll(s)];
   const cloud = window.CasaGlickFirestore;
@@ -20,6 +20,34 @@
   }
   function esc(value){ return String(value ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
   function categoryLabel(value){ return ({poltronas:'Sillones individuales',ottoman:'Ottoman',sillas:'Sillas',mesas:'Mesas',sofas:'Sofás',exterior:'Exterior',decoracion:'Decoración',iluminacion:'Iluminación',habitacion:'Habitación'})[value] || (value ? String(value) : 'Sin categoría'); }
+
+  const SHOP_SECTION_DEFINITIONS = [
+    {key:'hero',label:'Hero principal',description:'Portada superior de la tienda.',icon:'layout-template'},
+    {key:'products',label:'Productos',description:'Bloque principal del catálogo.',icon:'shopping-bag'},
+    {key:'showroom',label:'Showroom',description:'Invitación a visitar el showroom.',icon:'store'},
+    {key:'about',label:'About',description:'Presentación e historia de Casa Glick.',icon:'landmark'},
+    {key:'brands',label:'Marcas',description:'Bloque de firmas y marcas disponibles.',icon:'badge-check'},
+    {key:'contact',label:'Contacto',description:'Cierre y llamada a contacto.',icon:'message-square'}
+  ];
+  function defaultSection(def){ return {enabled:true,eyebrow:'',title:'',description:'',imageUrl:'',buttonText:'',buttonUrl:'',...def.defaults}; }
+  function normalizeShopContent(raw={}){
+    const sections=raw.sections||{};
+    return {sections:Object.fromEntries(SHOP_SECTION_DEFINITIONS.map(def=>[def.key,{...defaultSection(def),...(sections[def.key]||{})}]))};
+  }
+  function renderShopContent(){
+    const list=$('#shop-content-list'); if(!list)return;
+    list.innerHTML=SHOP_SECTION_DEFINITIONS.map((def,index)=>{ const item=state.shopContent.sections?.[def.key]||defaultSection(def); return `<article class="shop-section-card ${index===0?'is-open':''}" data-section-card="${def.key}"><div class="shop-section-card__header" data-toggle-section-card="${def.key}"><div class="shop-section-card__identity"><i data-lucide="${def.icon}"></i><div><strong>${esc(def.label)}</strong><small>${esc(def.description)}</small></div></div><div class="shop-section-card__controls"><label class="toggle-row shop-section-card__toggle" title="Mostrar u ocultar sección"><span>Visible</span><input type="checkbox" data-section-field="enabled" data-section-key="${def.key}" ${item.enabled!==false?'checked':''}><i></i></label><i class="shop-section-card__chevron" data-lucide="chevron-down"></i></div></div><div class="shop-section-card__body"><div class="shop-section-form"><label><span>Eyebrow / texto pequeño</span><input type="text" data-section-key="${def.key}" data-section-field="eyebrow" value="${esc(item.eyebrow)}"></label><label><span>Título</span><input type="text" data-section-key="${def.key}" data-section-field="title" value="${esc(item.title)}"></label><label class="is-wide"><span>Descripción</span><textarea data-section-key="${def.key}" data-section-field="description">${esc(item.description)}</textarea></label><div class="shop-section-image"><div class="shop-section-image__preview"><img data-section-preview="${def.key}" src="${esc(item.imageUrl||FALLBACK_IMAGE)}" alt="Vista previa de ${esc(def.label)}"></div><div class="shop-section-image__fields"><label><span>URL de imagen</span><input type="url" data-section-key="${def.key}" data-section-field="imageUrl" value="${esc(item.imageUrl)}" placeholder="https://..."></label><label class="shop-section-image__upload"><input type="file" accept="image/*" data-section-upload="${def.key}"><span>Subir imagen desde el equipo</span></label><small class="shop-section-image__progress" data-section-progress="${def.key}"></small></div></div><label><span>Texto del botón</span><input type="text" data-section-key="${def.key}" data-section-field="buttonText" value="${esc(item.buttonText)}"></label><label><span>Enlace del botón</span><input type="text" data-section-key="${def.key}" data-section-field="buttonUrl" value="${esc(item.buttonUrl)}" placeholder="/productos.html"></label></div></div></article>`; }).join('');
+    renderLucide();
+  }
+  async function loadShopContent(){
+    try{ state.shopContent=normalizeShopContent(await cloud.loadShopContent()); renderShopContent(); const status=$('#shop-content-status'); if(status){status.textContent='Sincronizado';status.classList.add('is-saved');} }
+    catch(error){ console.error(error); state.shopContent=normalizeShopContent(); renderShopContent(); toast('No se pudo cargar el contenido de Shop.'); }
+  }
+  function collectShopContent(){
+    const content=normalizeShopContent(state.shopContent);
+    $$('[data-section-key][data-section-field]').forEach(input=>{ const key=input.dataset.sectionKey; const field=input.dataset.sectionField; if(!content.sections[key])content.sections[key]={}; content.sections[key][field]=input.type==='checkbox'?input.checked:input.value.trim(); });
+    return content;
+  }
   function categoryData(product){ const category=product?.category||''; return {category,categoryLabel:categoryLabel(category),apiCategory:product?.apiCategory||''}; }
   function renderLucide(){ if(window.lucide?.createIcons) window.lucide.createIcons({attrs:{'aria-hidden':'true'}}); }
 
@@ -174,6 +202,10 @@
     };
     syncSettingsControls();
     if(stripeToggle){ stripeToggle.addEventListener('change',updateStripeModeUI); }
+    $('#shop-content-list')?.addEventListener('click',e=>{ const header=e.target.closest('[data-toggle-section-card]'); if(!header||e.target.closest('label'))return; header.closest('.shop-section-card')?.classList.toggle('is-open'); });
+    $('#shop-content-list')?.addEventListener('input',e=>{ const input=e.target.closest('[data-section-field]'); if(!input)return; const status=$('#shop-content-status'); if(status){status.textContent='Cambios sin guardar';status.classList.remove('is-saved');} if(input.dataset.sectionField==='imageUrl'){ const preview=$(`[data-section-preview="${input.dataset.sectionKey}"]`); if(preview)preview.src=input.value.trim()||FALLBACK_IMAGE; } });
+    $('#shop-content-list')?.addEventListener('change',async e=>{ const fileInput=e.target.closest('[data-section-upload]'); if(!fileInput||!fileInput.files?.[0])return; const key=fileInput.dataset.sectionUpload; const progress=$(`[data-section-progress="${key}"]`); const file=fileInput.files[0]; if(progress)progress.textContent='Subiendo imagen…'; fileInput.disabled=true; try{ const url=await cloud.uploadShopContentImage(key,file); const urlInput=$(`[data-section-key="${key}"][data-section-field="imageUrl"]`); const preview=$(`[data-section-preview="${key}"]`); if(urlInput)urlInput.value=url; if(preview)preview.src=url; if(progress)progress.textContent='Imagen lista. Guarda los cambios.'; const status=$('#shop-content-status'); if(status){status.textContent='Cambios sin guardar';status.classList.remove('is-saved');} }catch(error){console.error(error);if(progress)progress.textContent='No se pudo subir la imagen.';}finally{fileInput.disabled=false;fileInput.value='';} });
+    $('#save-shop-content')?.addEventListener('click',async()=>{ const button=$('#save-shop-content'); const data=collectShopContent(); button.disabled=true; try{ await cloud.saveShopContent(data); state.shopContent=data; const status=$('#shop-content-status'); if(status){status.textContent='Guardado';status.classList.add('is-saved');} toast('Contenido de Shop guardado en Firebase.'); }catch(error){console.error(error);toast('No se pudo guardar el contenido de Shop.');}finally{button.disabled=false;} });
     $('#save-settings').addEventListener('click',async()=>{
       const apiUrl=$('#api-url').value.trim()||DEFAULT_API;
       const stripeEnabled=Boolean(stripeToggle?.checked);
@@ -192,5 +224,5 @@
     });
     document.addEventListener('keydown',e=>{ if(e.key==='Escape'){closeDrawer();closeMessage();} });
   }
-  bind(); renderLucide(); startMessagesListener(); loadProducts();
+  bind(); renderLucide(); startMessagesListener(); loadShopContent(); loadProducts();
 })();
