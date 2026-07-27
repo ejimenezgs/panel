@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/admin.css?v=23" />
+  <link rel="stylesheet" href="css/admin.css?v=27" />
 </head>
 <body class="auth-signed-out">
   <section class="login-screen" id="login-screen" aria-labelledby="login-title">
@@ -54,10 +54,10 @@
           <i class="nav-item__icon" data-lucide="package"></i><span>Productos</span>
         </button>
         <button class="nav-item" type="button" data-view="orders">
-          <i class="nav-item__icon" data-lucide="clipboard-list"></i><span>Órdenes</span>
+          <i class="nav-item__icon" data-lucide="clipboard-list"></i><span>Órdenes</span><b class="nav-badge" id="orders-badge" hidden></b>
         </button>
         <button class="nav-item" type="button" data-view="messages">
-          <i class="nav-item__icon" data-lucide="message-square"></i><span>Mensajes</span><b class="nav-badge" id="messages-badge" hidden>0</b>
+          <i class="nav-item__icon" data-lucide="message-square"></i><span>Mensajes</span><b class="nav-badge" id="messages-badge" hidden></b>
         </button>
         <button class="nav-item" type="button" data-view="web-design">
           <i class="nav-item__icon" data-lucide="palette"></i><span>Web Design</span>
@@ -293,6 +293,6 @@
   <script src="js/firebase-config.js?v=25"></script>
   <script src="js/shop-content-schema.js?v=26"></script>
   <script src="https://shop.casaglick.com/js/shop-content-schema.js?v=63"></script>
-  <script type="module" src="js/auth.js?v=25"></script>
+  <script type="module" src="js/auth.js?v=27"></script>
 </body>
 </html>

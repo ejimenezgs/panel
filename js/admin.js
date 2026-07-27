@@ -219,14 +219,22 @@
 
   function toast(message){ const el=$('#toast'); el.textContent=message; el.classList.add('is-visible'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('is-visible'),2800); }
   function formatDate(value){ try{ const date=value?.toDate?value.toDate():new Date(value); return new Intl.DateTimeFormat('es-MX',{dateStyle:'medium',timeStyle:'short'}).format(date); }catch{return '—';} }
-  async function loadOrders(){ const body=$('#orders-body'); if(!body)return; body.innerHTML='<tr><td colspan="6">Cargando órdenes…</td></tr>'; try{ state.orders=await cloud.loadOrders(); renderOrders(); }catch(error){ console.error(error); body.innerHTML='<tr><td colspan="6">No fue posible cargar las órdenes.</td></tr>'; } }
+  function updateOrdersBadge(){ const count=state.orders.filter(order=>String(order.status||'Nueva').trim().toLowerCase()==='nueva').length; const badge=$('#orders-badge'); if(!badge)return; if(count===0){ badge.hidden=true; badge.textContent=''; return; } badge.textContent=count>99?'99+':String(count); badge.hidden=false; }
+  async function loadOrders(){ const body=$('#orders-body'); if(body)body.innerHTML='<tr><td colspan="6">Cargando órdenes…</td></tr>'; try{ state.orders=await cloud.loadOrders(); updateOrdersBadge(); if(body)renderOrders(); }catch(error){ console.error(error); if(body)body.innerHTML='<tr><td colspan="6">No fue posible cargar las órdenes.</td></tr>'; } }
+  function startOrdersListener(){
+    if(typeof cloud.subscribeOrders!=='function'){ loadOrders(); return; }
+    cloud.subscribeOrders(
+      orders=>{ state.orders=orders; updateOrdersBadge(); if($('#orders-body'))renderOrders(); },
+      ()=>{ const body=$('#orders-body'); if(body&&!state.orders.length)body.innerHTML='<tr><td colspan="6">No fue posible actualizar las órdenes.</td></tr>'; }
+    );
+  }
   function renderOrders(){ const body=$('#orders-body'); const empty=$('#orders-empty'); empty.hidden=state.orders.length>0; body.innerHTML=state.orders.map(order=>{ const itemCount=Array.isArray(order.items)?order.items.reduce((sum,item)=>sum+(Number(item.quantity)||1),0):0; const delivery=order.customer?.deliveryType||order.deliveryType||''; return `<tr><td><strong>${esc(order.folio||order.id)}</strong><small>${itemCount} producto${itemCount===1?'':'s'}</small></td><td><strong>${esc(order.customer?.name||'—')}</strong><small>${esc(order.customer?.phone||'')}${delivery?` · ${esc(delivery)}`:''}</small></td><td>${esc(formatDate(order.createdAt))}</td><td>${esc(money(order.total??0))}</td><td><select class="order-status" data-order-status="${esc(order.id)}">${['Nueva','Contactado','Cotización enviada','Confirmada','Pagada','En preparación','Entregada','Cancelada'].map(status=>`<option ${status===(order.status||'Nueva')?'selected':''}>${status}</option>`).join('')}</select></td><td><button class="row-action" type="button" data-order-whatsapp="${esc(order.customer?.phone||'')}" data-order-folio="${esc(order.folio||'')}" aria-label="Dar seguimiento por WhatsApp"><i data-lucide="message-circle"></i></button></td></tr>`; }).join(''); renderLucide(); }
 
   function normalizeMessage(raw){
     const source=String(raw.source||raw.site||raw.origin||'casaglick.com').replace(/^https?:\/\//,'').replace(/\/$/,'');
     return {...raw,source,status:raw.status==='read'?'read':'unread',name:raw.name||raw.fullName||raw.nombre||'Sin nombre',email:raw.email||raw.correo||'',phone:raw.phone||raw.telefono||'',message:raw.message||raw.mensaje||raw.comments||''};
   }
-  function updateMessagesBadge(){ const unread=state.messages.filter(item=>item.status!=='read').length; const badge=$('#messages-badge'); if(!badge)return; badge.textContent=unread>99?'99+':String(unread); badge.hidden=unread===0; }
+  function updateMessagesBadge(){ const unread=state.messages.filter(item=>item.status!=='read').length; const badge=$('#messages-badge'); if(!badge)return; if(unread===0){ badge.hidden=true; badge.textContent=''; return; } badge.textContent=unread>99?'99+':String(unread); badge.hidden=false; }
   async function loadMessages(){ const body=$('#messages-body'); if(!body)return; body.innerHTML='<tr><td colspan="6">Cargando mensajes…</td></tr>'; try{ state.messages=(await cloud.loadMessages()).map(normalizeMessage); applyMessageFilters(); updateMessagesBadge(); }catch(error){ console.error(error); body.innerHTML='<tr><td colspan="6">No fue posible cargar los mensajes.</td></tr>'; } }
   function startMessagesListener(){
     if(typeof cloud.subscribeMessages!=='function'){ loadMessages(); return; }
@@ -306,10 +314,10 @@
       $$('.view').forEach(v=>v.classList.toggle('is-active',v.id===`view-${btn.dataset.view}`));
       const titles={products:'Administración de productos',orders:'Órdenes',messages:'Mensajes','web-design':'Web Design',settings:'Configuración'};
       const heading=$('.topbar h1'); if(heading) heading.textContent=titles[btn.dataset.view]||'Casa Glick Panel';
-      if(btn.dataset.view==='orders')loadOrders();
+      if(btn.dataset.view==='orders')renderOrders();
       if(btn.dataset.view==='web-design')loadShopContent();
     }));
-    $('#orders-body')?.addEventListener('change',async e=>{ if(!e.target.matches('[data-order-status]'))return; const select=e.target; select.disabled=true; try{ await cloud.updateOrderStatus(select.dataset.orderStatus,select.value); const order=state.orders.find(x=>x.id===select.dataset.orderStatus); if(order)order.status=select.value; toast('Estado de la orden actualizado.'); }catch(error){console.error(error);toast('No se pudo actualizar la orden.');}finally{select.disabled=false;} });
+    $('#orders-body')?.addEventListener('change',async e=>{ if(!e.target.matches('[data-order-status]'))return; const select=e.target; select.disabled=true; try{ await cloud.updateOrderStatus(select.dataset.orderStatus,select.value); const order=state.orders.find(x=>x.id===select.dataset.orderStatus); if(order)order.status=select.value; updateOrdersBadge(); toast('Estado de la orden actualizado.'); }catch(error){console.error(error);toast('No se pudo actualizar la orden.');}finally{select.disabled=false;} });
     $('#message-source-filter')?.addEventListener('change',applyMessageFilters); $('#message-status-filter')?.addEventListener('change',applyMessageFilters); $('#messages-body')?.addEventListener('click',e=>{ const btn=e.target.closest('[data-open-message]'); const row=e.target.closest('[data-message-row]'); const id=btn?.dataset.openMessage||row?.dataset.messageRow; if(id)openMessage(id); }); $('#close-message-drawer')?.addEventListener('click',closeMessage); $('#message-backdrop')?.addEventListener('click',closeMessage);
     $('#orders-body')?.addEventListener('click',e=>{ const btn=e.target.closest('[data-order-whatsapp]'); if(!btn)return; const phone=String(btn.dataset.orderWhatsapp||'').replace(/\D/g,''); const text=encodeURIComponent(`Hola, damos seguimiento a tu orden ${btn.dataset.orderFolio} de Casa Glick.`); window.open(`https://wa.me/${phone}?text=${text}`,'_blank'); });
     const stripeToggle=$('#stripe-enabled');
@@ -355,5 +363,5 @@
     });
     document.addEventListener('keydown',e=>{ if(e.key==='Escape'){closeDrawer();closeMessage();} });
   }
-  bind(); bindSectionSorting(); renderLucide(); startMessagesListener(); loadShopContent(); loadProducts();
+  bind(); bindSectionSorting(); renderLucide(); startOrdersListener(); startMessagesListener(); loadShopContent(); loadProducts();
 })();

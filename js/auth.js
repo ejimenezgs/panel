@@ -72,7 +72,7 @@ function loadAdmin() {
   if (adminLoaded) return;
   adminLoaded = true;
   const script = document.createElement('script');
-  script.src = 'js/admin.js?v=25';
+  script.src = 'js/admin.js?v=27';
   script.defer = true;
   document.body.appendChild(script);
 }
@@ -179,6 +179,17 @@ if (!isConfigured()) {
     async loadOrders() {
       const snapshot = await getDocs(query(collection(db, 'orders'), orderBy('createdAt', 'desc')));
       return snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+    },
+    subscribeOrders(onChange, onError) {
+      const ordersQuery = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+      return onSnapshot(
+        ordersQuery,
+        (snapshot) => onChange(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))),
+        (error) => {
+          console.error('Orders listener error:', error);
+          if (typeof onError === 'function') onError(error);
+        }
+      );
     },
     async updateOrderStatus(orderId, status) {
       await updateDoc(doc(db, 'orders', orderId), {
