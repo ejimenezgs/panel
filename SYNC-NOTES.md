@@ -6,3 +6,9 @@
 - Los bloques se pueden arrastrar y el orden se guarda en `sectionOrder`.
 - Hero permanece primero y Contacto permanece al final.
 - El orden se guarda automáticamente al soltar.
+
+
+## v26
+- Web Design cards aligned with fixed drag, identity, and controls columns.
+- All editing cards load collapsed by default.
+- Added global Restablecer action to restore schema defaults before saving.
