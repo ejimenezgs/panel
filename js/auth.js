@@ -72,7 +72,7 @@ function loadAdmin() {
   if (adminLoaded) return;
   adminLoaded = true;
   const script = document.createElement('script');
-  script.src = 'js/admin.js?v=23';
+  script.src = 'js/admin.js?v=24';
   script.defer = true;
   document.body.appendChild(script);
 }
@@ -168,7 +168,7 @@ if (!isConfigured()) {
         ...data,
         updatedAt: serverTimestamp(),
         updatedBy: auth.currentUser?.email || ''
-      });
+      }, { merge: true });
     },
     async uploadShopContentImage(sectionKey, file) {
       const safeName = String(file.name || 'image').replace(/[^a-zA-Z0-9._-]+/g, '-');

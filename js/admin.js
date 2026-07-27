@@ -21,45 +21,71 @@
   function esc(value){ return String(value ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
   function categoryLabel(value){ return ({poltronas:'Sillones individuales',ottoman:'Ottoman',sillas:'Sillas',mesas:'Mesas',sofas:'Sofás',exterior:'Exterior',decoracion:'Decoración',iluminacion:'Iluminación',habitacion:'Habitación'})[value] || (value ? String(value) : 'Sin categoría'); }
 
-  const SHOP_SECTION_DEFINITIONS = [
-    {key:'hero',label:'Hero principal',description:'Portada superior de la tienda.',icon:'layout-template',defaults:{imageUrl:'assets/hero-desk.webp'}},
-    {key:'products',label:'Productos',description:'Bloque principal del catálogo.',icon:'shopping-bag',defaults:{title:'Piezas que elevan cada espacio.',description:'Explora nuestra curaduría de mobiliario y decoración para proyectos residenciales, comerciales y de hospitality.',buttonText:'Ver todo',buttonUrl:'productos.html?filter=todo'}},
-    {key:'showroom',label:'Showroom',description:'Invitación a visitar el showroom.',icon:'store',defaults:{title:'Vive CASA GLICK | en persona',description:'Descubre una selección curada de mobiliario, materiales y soluciones integrales en un espacio diseñado para inspirar cada proyecto.',imageUrl:'assets/about-materials-correct.webp',buttonText:'Visitar showroom',buttonUrl:'https://wa.me/525513004665?text=Quiero%20conocer%20el%20showroom'}},
-    {key:'about',label:'About',description:'Presentación e historia de Casa Glick.',icon:'landmark',defaults:{title:'Casa Glick',description:'Integramos diseño, fabricación, suministro e instalación para desarrollar espacios donde cada detalle responde a una misma visión.\nUn equipo que coordina cada etapa para lograr resultados consistentes y una ejecución impecable.',imageUrl:'assets/about-materials-final.webp',buttonText:'Descubre nuestro enfoque',buttonUrl:'#productos'}},
-    {key:'brands',label:'Marcas',description:'Bloque de ambientes y marcas disponibles.',icon:'badge-check',defaults:{imageUrl:'assets/lifestyle-reading-chair.webp'}},
-    {key:'contact',label:'Contacto',description:'Cierre y llamada a contacto.',icon:'message-square',defaults:{eyebrow:'Contacto',title:'Déjanos ayudarte con tu compra.',imageUrl:'assets/contact-design-worktable.png',buttonText:'Enviar'} }
-  ];
-  function defaultSection(def){ return {enabled:true,eyebrow:'',title:'',description:'',imageUrl:'',buttonText:'',buttonUrl:'',...def.defaults}; }
+  const SHOP_SECTION_DEFINITIONS = Array.isArray(window.CASA_GLICK_SHOP_SECTION_SCHEMA)
+    ? window.CASA_GLICK_SHOP_SECTION_SCHEMA
+    : [];
+  const CONTENT_FIELDS = ['eyebrow','title','description','imageUrl','buttonText','buttonUrl'];
+  function defaultSection(def){ return {enabled:true,...(def.defaults||{})}; }
   function fillEmptySectionFields(section, defaults){
-    const result={...section};
-    ['eyebrow','title','description','imageUrl','buttonText','buttonUrl'].forEach(field=>{
-      if(typeof result[field]!=='string' || !result[field].trim()) result[field]=defaults[field]||'';
+    const result={...defaults,...section};
+    CONTENT_FIELDS.forEach(field=>{
+      if(field in defaults && (typeof result[field]!=='string' || !result[field].trim())) result[field]=defaults[field]||'';
     });
     return result;
   }
+  function normalizedDefinitions(raw={}){
+    const remote=Array.isArray(raw?.schema?.sections)?raw.schema.sections:[];
+    const byKey=new Map();
+    [...remote,...SHOP_SECTION_DEFINITIONS].forEach(def=>{ if(def?.key) byKey.set(def.key,{...byKey.get(def.key),...def}); });
+    return [...byKey.values()];
+  }
   function normalizeShopContent(raw={}){
+    const definitions=normalizedDefinitions(raw);
     const nestedSections=raw.sections&&typeof raw.sections==='object'?raw.sections:{};
-    const sections=Object.fromEntries(SHOP_SECTION_DEFINITIONS.map(def=>{
+    const sections={...nestedSections};
+    definitions.forEach(def=>{
       const directSection=raw[def.key]&&typeof raw[def.key]==='object'?raw[def.key]:{};
       const nestedSection=nestedSections[def.key]&&typeof nestedSections[def.key]==='object'?nestedSections[def.key]:{};
       const defaults=defaultSection(def);
-      return [def.key,fillEmptySectionFields({...defaults,...nestedSection,...directSection},defaults)];
-    }));
-    return {sections};
+      sections[def.key]=fillEmptySectionFields({...defaults,...nestedSection,...directSection},defaults);
+    });
+    return {sections,definitions};
+  }
+  function schemaPayload(definitions){
+    return definitions.map(def=>({key:def.key,label:def.label||def.key,description:def.description||'',icon:def.icon||'layout',fields:Array.isArray(def.fields)?def.fields:[],defaults:def.defaults||{}}));
   }
   function shopContentPayload(content){
     const normalized=normalizeShopContent(content);
-    const direct=Object.fromEntries(SHOP_SECTION_DEFINITIONS.map(def=>[def.key,{...normalized.sections[def.key]}]));
-    return {schemaVersion:3,...direct};
+    const direct=Object.fromEntries(normalized.definitions.map(def=>[def.key,{...normalized.sections[def.key]}]));
+    return {schemaVersion:4,schema:{version:1,sections:schemaPayload(normalized.definitions)},sections:{...normalized.sections},...direct};
+  }
+  function renderField(def,item,field){
+    const key=def.key, value=item[field.key]??'', wide=field.wide?' is-wide':'';
+    if(field.type==='textarea') return `<label class="${wide.trim()}"><span>${esc(field.label)}</span><textarea data-section-key="${key}" data-section-field="${field.key}">${esc(value)}</textarea></label>`;
+    if(field.type==='image') return `<div class="shop-section-image"><div class="shop-section-image__preview"><img data-section-preview="${key}" src="${esc(value||FALLBACK_IMAGE)}" alt="Vista previa de ${esc(def.label)}"></div><div class="shop-section-image__fields"><label><span>URL de imagen</span><input type="url" data-section-key="${key}" data-section-field="${field.key}" value="${esc(value)}" placeholder="https://..."></label><label class="shop-section-image__upload"><input type="file" accept="image/*" data-section-upload="${key}"><span>Subir imagen desde el equipo</span></label><small class="shop-section-image__progress" data-section-progress="${key}"></small></div></div>`;
+    const inputType=field.type==='url'?'url':'text';
+    return `<label class="${wide.trim()}"><span>${esc(field.label)}</span><input type="${inputType}" data-section-key="${key}" data-section-field="${field.key}" value="${esc(value)}"></label>`;
   }
   function renderShopContent(){
     const list=$('#shop-content-list'); if(!list)return;
-    list.innerHTML=SHOP_SECTION_DEFINITIONS.map((def,index)=>{ const item=state.shopContent.sections?.[def.key]||defaultSection(def); return `<article class="shop-section-card ${index===0?'is-open':''}" data-section-card="${def.key}"><div class="shop-section-card__header" data-toggle-section-card="${def.key}"><div class="shop-section-card__identity"><i data-lucide="${def.icon}"></i><div><strong>${esc(def.label)}</strong><small>${esc(def.description)}</small></div></div><div class="shop-section-card__controls"><label class="toggle-row shop-section-card__toggle" title="Mostrar u ocultar sección"><span>Visible</span><input type="checkbox" data-section-field="enabled" data-section-key="${def.key}" ${item.enabled!==false?'checked':''}><i></i></label><i class="shop-section-card__chevron" data-lucide="chevron-down"></i></div></div><div class="shop-section-card__body"><div class="shop-section-form"><label><span>Eyebrow / texto pequeño</span><input type="text" data-section-key="${def.key}" data-section-field="eyebrow" value="${esc(item.eyebrow)}"></label><label><span>Título</span><input type="text" data-section-key="${def.key}" data-section-field="title" value="${esc(item.title)}"></label><label class="is-wide"><span>Descripción</span><textarea data-section-key="${def.key}" data-section-field="description">${esc(item.description)}</textarea></label><div class="shop-section-image"><div class="shop-section-image__preview"><img data-section-preview="${def.key}" src="${esc(item.imageUrl||FALLBACK_IMAGE)}" alt="Vista previa de ${esc(def.label)}"></div><div class="shop-section-image__fields"><label><span>URL de imagen</span><input type="url" data-section-key="${def.key}" data-section-field="imageUrl" value="${esc(item.imageUrl)}" placeholder="https://..."></label><label class="shop-section-image__upload"><input type="file" accept="image/*" data-section-upload="${def.key}"><span>Subir imagen desde el equipo</span></label><small class="shop-section-image__progress" data-section-progress="${def.key}"></small></div></div><label><span>Texto del botón</span><input type="text" data-section-key="${def.key}" data-section-field="buttonText" value="${esc(item.buttonText)}"></label><label><span>Enlace del botón</span><input type="text" data-section-key="${def.key}" data-section-field="buttonUrl" value="${esc(item.buttonUrl)}" placeholder="/productos.html"></label></div></div></article>`; }).join('');
+    const definitions=state.shopContent.definitions||SHOP_SECTION_DEFINITIONS;
+    list.innerHTML=definitions.map((def,index)=>{ const item=state.shopContent.sections?.[def.key]||defaultSection(def); const fields=(def.fields||[]).map(field=>renderField(def,item,field)).join(''); return `<article class="shop-section-card ${index===0?'is-open':''}" data-section-card="${def.key}"><div class="shop-section-card__header" data-toggle-section-card="${def.key}"><div class="shop-section-card__identity"><i data-lucide="${def.icon||'layout'}"></i><div><strong>${esc(def.label||def.key)}</strong><small>${esc(def.description||'Bloque editable de Shop.')}</small></div></div><div class="shop-section-card__controls"><label class="toggle-row shop-section-card__toggle" title="Mostrar u ocultar sección"><span>Visible</span><input type="checkbox" data-section-field="enabled" data-section-key="${def.key}" ${item.enabled!==false?'checked':''}><i></i></label><i class="shop-section-card__chevron" data-lucide="chevron-down"></i></div></div><div class="shop-section-card__body"><div class="shop-section-form">${fields}</div></div></article>`; }).join('');
     renderLucide();
   }
+  function needsSchemaSync(raw,normalized){
+    const remoteKeys=new Set(Object.keys(raw?.sections||{}).concat(Object.keys(raw||{})));
+    return normalized.definitions.some(def=>!remoteKeys.has(def.key)) || Number(raw?.schemaVersion||0)<4;
+  }
   async function loadShopContent(){
-    try{ state.shopContent=normalizeShopContent(await cloud.loadShopContent()); renderShopContent(); const status=$('#shop-content-status'); if(status){status.textContent='Sincronizado';status.classList.add('is-saved');} }
-    catch(error){ console.error(error); state.shopContent=normalizeShopContent(); renderShopContent(); toast('No se pudo cargar el contenido de Shop.'); }
+    try{
+      const raw=await cloud.loadShopContent();
+      state.shopContent=normalizeShopContent(raw);
+      if(needsSchemaSync(raw,state.shopContent)){
+        await cloud.saveShopContent(shopContentPayload(state.shopContent));
+      }
+      renderShopContent();
+      const status=$('#shop-content-status'); if(status){status.textContent='Sincronizado';status.classList.add('is-saved');}
+    } catch(error){ console.error(error); state.shopContent=normalizeShopContent(); renderShopContent(); toast('No se pudo cargar el contenido de Shop.'); }
   }
   function collectShopContent(){
     const content=normalizeShopContent(state.shopContent);
