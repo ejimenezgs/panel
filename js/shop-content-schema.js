@@ -1,11 +1,18 @@
 window.CASA_GLICK_SHOP_SECTION_SCHEMA = [
-  { key:'hero', label:'Hero principal', description:'Portada superior de la tienda.', icon:'layout-template', fields:[
+  { key:'hero', label:'Hero principal', description:'Portada superior de la tienda.', icon:'layout-template', lockedPosition:'first', fields:[
     {key:'imageUrl',label:'Imagen de escritorio',type:'image'}
   ], defaults:{enabled:true,imageUrl:'assets/hero-desk-casa-glick.png'} },
   { key:'products', label:'Productos', description:'Bloque principal del catálogo.', icon:'shopping-bag', fields:[
     {key:'title',label:'Título',type:'text'}, {key:'description',label:'Descripción',type:'textarea',wide:true},
     {key:'buttonText',label:'Texto del botón',type:'text'}, {key:'buttonUrl',label:'Enlace del botón',type:'text'}
   ], defaults:{enabled:true,title:'Piezas que elevan cada espacio.',description:'Explora nuestra curaduría de mobiliario y decoración para proyectos residenciales, comerciales y de hospitality.',buttonText:'Ver todo',buttonUrl:'productos.html?filter=todo'} },
+  { key:'about', label:'About', description:'Presentación e historia de Casa Glick.', icon:'landmark', fields:[
+    {key:'title',label:'Título',type:'text'}, {key:'description',label:'Descripción',type:'textarea',wide:true},
+    {key:'imageUrl',label:'Imagen',type:'image'}, {key:'buttonText',label:'Texto del botón',type:'text'}, {key:'buttonUrl',label:'Enlace del botón',type:'text'}
+  ], defaults:{enabled:true,title:'Casa Glick',description:'Integramos diseño, fabricación, suministro e instalación para desarrollar espacios donde cada detalle responde a una misma visión.\nUn equipo que coordina cada etapa para lograr resultados consistentes y una ejecución impecable.',imageUrl:'assets/about-materials-final.webp',buttonText:'Descubre nuestro enfoque',buttonUrl:'#about-modal'} },
+  { key:'brands', label:'Lifestyle', description:'Bloque de ambientes e inspiración.', icon:'badge-check', fields:[
+    {key:'imageUrl',label:'Imagen principal',type:'image'}
+  ], defaults:{enabled:true,imageUrl:'assets/lifestyle-reading-chair.webp'} },
   { key:'hospitality', label:'Hospitality', description:'Soluciones para hoteles, restaurantes y desarrollos.', icon:'hotel', fields:[
     {key:'title',label:'Título',type:'text'}, {key:'description',label:'Descripción',type:'textarea',wide:true},
     {key:'imageUrl',label:'Imagen',type:'image'}, {key:'buttonText',label:'Texto del botón',type:'text'},
@@ -15,14 +22,7 @@ window.CASA_GLICK_SHOP_SECTION_SCHEMA = [
     {key:'title',label:'Título',type:'text'}, {key:'description',label:'Descripción',type:'textarea',wide:true},
     {key:'imageUrl',label:'Imagen',type:'image'}, {key:'buttonText',label:'Texto del botón',type:'text'}, {key:'buttonUrl',label:'Enlace del botón',type:'text'}
   ], defaults:{enabled:true,title:'Vive CASA GLICK | en persona',description:'Descubre una selección curada de mobiliario, materiales y soluciones integrales en un espacio diseñado para inspirar cada proyecto.',imageUrl:'assets/about-materials-correct.webp',buttonText:'Visitar showroom',buttonUrl:'https://wa.me/525513004665?text=Quiero%20conocer%20el%20showroom'} },
-  { key:'about', label:'About', description:'Presentación e historia de Casa Glick.', icon:'landmark', fields:[
-    {key:'title',label:'Título',type:'text'}, {key:'description',label:'Descripción',type:'textarea',wide:true},
-    {key:'imageUrl',label:'Imagen',type:'image'}, {key:'buttonText',label:'Texto del botón',type:'text'}, {key:'buttonUrl',label:'Enlace del botón',type:'text'}
-  ], defaults:{enabled:true,title:'Casa Glick',description:'Integramos diseño, fabricación, suministro e instalación para desarrollar espacios donde cada detalle responde a una misma visión.\nUn equipo que coordina cada etapa para lograr resultados consistentes y una ejecución impecable.',imageUrl:'assets/about-materials-final.webp',buttonText:'Descubre nuestro enfoque',buttonUrl:'#productos'} },
-  { key:'brands', label:'Marcas', description:'Bloque de ambientes y marcas disponibles.', icon:'badge-check', fields:[
-    {key:'imageUrl',label:'Imagen',type:'image'}
-  ], defaults:{enabled:true,imageUrl:'assets/lifestyle-reading-chair.webp'} },
-  { key:'contact', label:'Contacto', description:'Cierre y llamada a contacto.', icon:'message-square', fields:[
+  { key:'contact', label:'Contacto', description:'Cierre y llamada a contacto.', icon:'message-square', lockedPosition:'last', fields:[
     {key:'eyebrow',label:'Eyebrow / texto pequeño',type:'text'}, {key:'title',label:'Título',type:'text'},
     {key:'imageUrl',label:'Imagen',type:'image'}, {key:'buttonText',label:'Texto del botón',type:'text'}
   ], defaults:{enabled:true,eyebrow:'Contacto',title:'Déjanos ayudarte con tu compra.',imageUrl:'assets/contact-design-worktable.png',buttonText:'Enviar'} }

@@ -39,6 +39,19 @@
     [...remote,...SHOP_SECTION_DEFINITIONS].forEach(def=>{ if(def?.key) byKey.set(def.key,{...byKey.get(def.key),...def}); });
     return [...byKey.values()];
   }
+  function normalizeSectionOrder(order,definitions){
+    const keys=definitions.map(def=>def.key);
+    const first=definitions.filter(def=>def.lockedPosition==='first').map(def=>def.key);
+    const last=definitions.filter(def=>def.lockedPosition==='last').map(def=>def.key);
+    const movable=keys.filter(key=>!first.includes(key)&&!last.includes(key));
+    const requested=Array.isArray(order)?order.filter(key=>movable.includes(key)):[];
+    const missing=movable.filter(key=>!requested.includes(key));
+    return [...first,...requested,...missing,...last];
+  }
+  function orderedDefinitions(definitions,order){
+    const byKey=new Map(definitions.map(def=>[def.key,def]));
+    return normalizeSectionOrder(order,definitions).map(key=>byKey.get(key)).filter(Boolean);
+  }
   function normalizeShopContent(raw={}){
     const definitions=normalizedDefinitions(raw);
     const nestedSections=raw.sections&&typeof raw.sections==='object'?raw.sections:{};
@@ -49,15 +62,16 @@
       const defaults=defaultSection(def);
       sections[def.key]=fillEmptySectionFields({...defaults,...nestedSection,...directSection},defaults);
     });
-    return {sections,definitions};
+    const sectionOrder=normalizeSectionOrder(raw.sectionOrder,definitions);
+    return {sections,definitions,sectionOrder};
   }
   function schemaPayload(definitions){
-    return definitions.map(def=>({key:def.key,label:def.label||def.key,description:def.description||'',icon:def.icon||'layout',fields:Array.isArray(def.fields)?def.fields:[],defaults:def.defaults||{}}));
+    return definitions.map(def=>({key:def.key,label:def.label||def.key,description:def.description||'',icon:def.icon||'layout',lockedPosition:def.lockedPosition||'',fields:Array.isArray(def.fields)?def.fields:[],defaults:def.defaults||{}}));
   }
   function shopContentPayload(content){
     const normalized=normalizeShopContent(content);
     const direct=Object.fromEntries(normalized.definitions.map(def=>[def.key,{...normalized.sections[def.key]}]));
-    return {schemaVersion:4,schema:{version:1,sections:schemaPayload(normalized.definitions)},sections:{...normalized.sections},...direct};
+    return {schemaVersion:5,schema:{version:2,sections:schemaPayload(normalized.definitions)},sectionOrder:[...normalized.sectionOrder],sections:{...normalized.sections},...direct};
   }
   function renderField(def,item,field){
     const key=def.key, value=item[field.key]??'', wide=field.wide?' is-wide':'';
@@ -68,13 +82,14 @@
   }
   function renderShopContent(){
     const list=$('#shop-content-list'); if(!list)return;
-    const definitions=state.shopContent.definitions||SHOP_SECTION_DEFINITIONS;
-    list.innerHTML=definitions.map((def,index)=>{ const item=state.shopContent.sections?.[def.key]||defaultSection(def); const fields=(def.fields||[]).map(field=>renderField(def,item,field)).join(''); return `<article class="shop-section-card ${index===0?'is-open':''}" data-section-card="${def.key}"><div class="shop-section-card__header" data-toggle-section-card="${def.key}"><div class="shop-section-card__identity"><i data-lucide="${def.icon||'layout'}"></i><div><strong>${esc(def.label||def.key)}</strong><small>${esc(def.description||'Bloque editable de Shop.')}</small></div></div><div class="shop-section-card__controls"><label class="toggle-row shop-section-card__toggle" title="Mostrar u ocultar sección"><span>Visible</span><input type="checkbox" data-section-field="enabled" data-section-key="${def.key}" ${item.enabled!==false?'checked':''}><i></i></label><i class="shop-section-card__chevron" data-lucide="chevron-down"></i></div></div><div class="shop-section-card__body"><div class="shop-section-form">${fields}</div></div></article>`; }).join('');
+    const definitions=orderedDefinitions(state.shopContent.definitions||SHOP_SECTION_DEFINITIONS,state.shopContent.sectionOrder);
+    list.innerHTML=definitions.map((def,index)=>{ const item=state.shopContent.sections?.[def.key]||defaultSection(def); const fields=(def.fields||[]).map(field=>renderField(def,item,field)).join(''); const locked=Boolean(def.lockedPosition); return `<article class="shop-section-card ${index===0?'is-open':''} ${locked?'is-order-locked':''}" data-section-card="${def.key}" ${locked?'':'draggable="true"'}><div class="shop-section-card__header" data-toggle-section-card="${def.key}"><button class="shop-section-card__drag" type="button" aria-label="${locked?'Posición fija':'Arrastrar para cambiar el orden'}" title="${locked?'Esta sección mantiene una posición fija':'Arrastra para cambiar el orden'}" ${locked?'disabled':''}><i data-lucide="${locked?'lock':'grip-vertical'}"></i></button><div class="shop-section-card__identity"><i data-lucide="${def.icon||'layout'}"></i><div><strong>${esc(def.label||def.key)}</strong><small>${esc(def.description||'Bloque editable de Shop.')}</small></div></div><div class="shop-section-card__controls"><label class="toggle-row shop-section-card__toggle" title="Mostrar u ocultar sección"><span>Visible</span><input type="checkbox" data-section-field="enabled" data-section-key="${def.key}" ${item.enabled!==false?'checked':''}><i></i></label><i class="shop-section-card__chevron" data-lucide="chevron-down"></i></div></div><div class="shop-section-card__body"><div class="shop-section-form">${fields}</div></div></article>`; }).join('');
     renderLucide();
   }
   function needsSchemaSync(raw,normalized){
     const remoteKeys=new Set(Object.keys(raw?.sections||{}).concat(Object.keys(raw||{})));
-    return normalized.definitions.some(def=>!remoteKeys.has(def.key)) || Number(raw?.schemaVersion||0)<4;
+    const expectedOrder=normalizeSectionOrder(raw?.sectionOrder,normalized.definitions);
+    return normalized.definitions.some(def=>!remoteKeys.has(def.key)) || Number(raw?.schemaVersion||0)<5 || JSON.stringify(raw?.sectionOrder||[])!==JSON.stringify(expectedOrder);
   }
   async function loadShopContent(){
     try{
@@ -224,6 +239,60 @@
   function renderMessages(){ const body=$('#messages-body'); const empty=$('#messages-empty'); if(!body)return; empty.hidden=state.filteredMessages.length>0; body.innerHTML=state.filteredMessages.map(item=>`<tr class="message-row ${item.status==='read'?'':'is-unread'}" data-message-row="${esc(item.id)}"><td><div class="message-contact"><strong>${esc(item.name)}</strong><small>${esc(item.email||item.phone||'Sin datos de contacto')}</small></div></td><td><div class="message-preview"><strong>${esc(item.subject||'Nuevo mensaje')}</strong><span>${esc(item.message||'Sin contenido')}</span></div></td><td><span class="message-source">${esc(item.source)}</span></td><td>${esc(formatDate(item.createdAt))}</td><td><span class="message-status ${item.status==='read'?'':'is-unread'}">${item.status==='read'?'Leído':'No leído'}</span></td><td><button class="row-action" type="button" data-open-message="${esc(item.id)}" aria-label="Abrir mensaje"><i data-lucide="chevron-right"></i></button></td></tr>`).join(''); renderLucide(); }
   async function openMessage(id){ const item=state.messages.find(message=>message.id===id); if(!item)return; state.currentMessage=item; $('#message-drawer-source').textContent=item.source.toUpperCase(); $('#message-drawer-name').textContent=item.name; $('#message-drawer-contact-name').textContent=item.name||'Sin nombre'; $('#message-drawer-email').textContent=item.email||'—'; $('#message-drawer-email').href=item.email?`mailto:${item.email}`:'#'; $('#message-drawer-phone').textContent=item.phone||'—'; $('#message-drawer-phone').href=item.phone?`tel:${String(item.phone).replace(/[^+\d]/g,'')}`:'#'; $('#message-drawer-date').textContent=formatDate(item.createdAt); $('#message-drawer-text').textContent=item.message||'Sin contenido'; $('#message-reply').href=item.email?`mailto:${item.email}?subject=${encodeURIComponent('Respuesta de Casa Glick')}`:(item.phone?`https://wa.me/${String(item.phone).replace(/\D/g,'')}`:'#'); $('#message-reply').target=item.email?'':'_blank'; $('#message-backdrop').hidden=false; requestAnimationFrame(()=>$('#message-drawer').classList.add('is-open')); $('#message-drawer').setAttribute('aria-hidden','false'); if(item.status!=='read'){ try{ await cloud.updateMessageStatus(item.id,'read'); item.status='read'; applyMessageFilters(); updateMessagesBadge(); }catch(error){console.error(error);} } }
   function closeMessage(){ $('#message-drawer')?.classList.remove('is-open'); $('#message-drawer')?.setAttribute('aria-hidden','true'); setTimeout(()=>{if($('#message-backdrop'))$('#message-backdrop').hidden=true;},350); state.currentMessage=null; }
+  let draggedSectionKey='';
+  let dragArmedKey='';
+  function currentSectionOrderFromDom(){
+    const definitions=state.shopContent.definitions||SHOP_SECTION_DEFINITIONS;
+    return normalizeSectionOrder($$('[data-section-card]',$('#shop-content-list')).map(card=>card.dataset.sectionCard),definitions);
+  }
+  async function persistSectionOrder(){
+    const sectionOrder=currentSectionOrderFromDom();
+    state.shopContent.sectionOrder=sectionOrder;
+    const status=$('#shop-content-status');
+    if(status){status.textContent='Guardando orden…';status.classList.remove('is-saved');}
+    try{
+      await cloud.saveShopContent({sectionOrder,schemaVersion:5});
+      if(status){status.textContent='Orden guardado';status.classList.add('is-saved');}
+      toast('Orden de las secciones guardado.');
+    }catch(error){
+      console.error(error);
+      if(status)status.textContent='No se pudo guardar el orden';
+      toast('No se pudo guardar el orden de las secciones.');
+      renderShopContent();
+    }
+  }
+  function bindSectionSorting(){
+    const list=$('#shop-content-list'); if(!list)return;
+    list.addEventListener('pointerdown',e=>{ const handle=e.target.closest('.shop-section-card__drag:not(:disabled)'); dragArmedKey=handle?.closest('[data-section-card]')?.dataset.sectionCard||''; });
+    list.addEventListener('pointerup',()=>{ if(!draggedSectionKey)dragArmedKey=''; });
+    list.addEventListener('dragstart',e=>{
+      const card=e.target.closest('.shop-section-card[draggable="true"]');
+      if(!card || dragArmedKey!==card.dataset.sectionCard){ e.preventDefault(); return; }
+      draggedSectionKey=card.dataset.sectionCard||'';
+      card.classList.add('is-dragging');
+      e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setData('text/plain',draggedSectionKey);
+    });
+    list.addEventListener('dragover',e=>{
+      if(!draggedSectionKey)return;
+      e.preventDefault();
+      const dragging=list.querySelector('.is-dragging');
+      const target=e.target.closest('.shop-section-card[draggable="true"]');
+      if(!dragging||!target||target===dragging)return;
+      const rect=target.getBoundingClientRect();
+      const after=e.clientY>rect.top+rect.height/2;
+      list.insertBefore(dragging,after?target.nextSibling:target);
+    });
+    list.addEventListener('drop',e=>{ if(draggedSectionKey)e.preventDefault(); });
+    list.addEventListener('dragend',async e=>{
+      const card=e.target.closest('.shop-section-card');
+      card?.classList.remove('is-dragging');
+      if(!draggedSectionKey)return;
+      draggedSectionKey='';
+      dragArmedKey='';
+      await persistSectionOrder();
+    });
+  }
   function bind(){
     $('#refresh-products').addEventListener('click',loadProducts); $('#refresh-orders')?.addEventListener('click',loadOrders); $('#refresh-messages')?.addEventListener('click',loadMessages); $('#product-search').addEventListener('input',applyFilters); $('#brand-filter')?.addEventListener('change',applyFilters); $('#category-filter').addEventListener('change',applyFilters); $('#status-filter').addEventListener('change',applyFilters);
     $('#products-body').addEventListener('click',e=>{ const edit=e.target.closest('[data-edit]'); if(edit)openDrawer(edit.dataset.edit); });
@@ -253,7 +322,7 @@
     };
     syncSettingsControls();
     if(stripeToggle){ stripeToggle.addEventListener('change',updateStripeModeUI); }
-    $('#shop-content-list')?.addEventListener('click',e=>{ const header=e.target.closest('[data-toggle-section-card]'); if(!header||e.target.closest('label'))return; header.closest('.shop-section-card')?.classList.toggle('is-open'); });
+    $('#shop-content-list')?.addEventListener('click',e=>{ const header=e.target.closest('[data-toggle-section-card]'); if(!header||e.target.closest('label')||e.target.closest('.shop-section-card__drag'))return; header.closest('.shop-section-card')?.classList.toggle('is-open'); });
     $('#shop-content-list')?.addEventListener('input',e=>{ const input=e.target.closest('[data-section-field]'); if(!input)return; const status=$('#shop-content-status'); if(status){status.textContent='Cambios sin guardar';status.classList.remove('is-saved');} if(input.dataset.sectionField==='imageUrl'){ const preview=$(`[data-section-preview="${input.dataset.sectionKey}"]`); if(preview)preview.src=input.value.trim()||FALLBACK_IMAGE; } });
     $('#shop-content-list')?.addEventListener('change',async e=>{ const fileInput=e.target.closest('[data-section-upload]'); if(!fileInput||!fileInput.files?.[0])return; const key=fileInput.dataset.sectionUpload; const progress=$(`[data-section-progress="${key}"]`); const file=fileInput.files[0]; if(progress)progress.textContent='Subiendo imagen…'; fileInput.disabled=true; try{ const url=await cloud.uploadShopContentImage(key,file); const urlInput=$(`[data-section-key="${key}"][data-section-field="imageUrl"]`); const preview=$(`[data-section-preview="${key}"]`); if(urlInput)urlInput.value=url; if(preview)preview.src=url; if(progress)progress.textContent='Imagen lista. Guarda los cambios.'; const status=$('#shop-content-status'); if(status){status.textContent='Cambios sin guardar';status.classList.remove('is-saved');} }catch(error){console.error(error);if(progress)progress.textContent='No se pudo subir la imagen.';}finally{fileInput.disabled=false;fileInput.value='';} });
     $('#save-shop-content')?.addEventListener('click',async()=>{ const button=$('#save-shop-content'); const data=collectShopContent(); const payload=shopContentPayload(data); button.disabled=true; try{ await cloud.saveShopContent(payload); state.shopContent=normalizeShopContent(payload); const status=$('#shop-content-status'); if(status){status.textContent='Guardado';status.classList.add('is-saved');} toast('Contenido y visibilidad de Shop guardados en Firebase.'); }catch(error){console.error(error);toast('No se pudo guardar el contenido de Shop.');}finally{button.disabled=false;} });
@@ -275,5 +344,5 @@
     });
     document.addEventListener('keydown',e=>{ if(e.key==='Escape'){closeDrawer();closeMessage();} });
   }
-  bind(); renderLucide(); startMessagesListener(); loadShopContent(); loadProducts();
+  bind(); bindSectionSorting(); renderLucide(); startMessagesListener(); loadShopContent(); loadProducts();
 })();
