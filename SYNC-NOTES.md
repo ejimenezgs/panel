@@ -12,3 +12,10 @@
 - Web Design cards aligned with fixed drag, identity, and controls columns.
 - All editing cards load collapsed by default.
 - Added global Restablecer action to restore schema defaults before saving.
+
+
+## v28 - Pago y canal de venta en Órdenes
+- La tabla de Órdenes incluye las columnas Pago y Venta.
+- Venta detecta Stripe o WhatsApp mediante `saleChannel`, `paymentMethod`, `checkoutMode` y campos de Stripe.
+- Pago muestra Pagado, Devolución, Cancelada o Pendiente únicamente para ventas Stripe.
+- El estado de pago se lee de Firestore (`paymentStatus`, `stripePaymentStatus`, `payment.status`, campos de reembolso). Stripe debe actualizar esos campos mediante el webhook seguro del Shop; el Panel no consulta la API secreta de Stripe desde el navegador.

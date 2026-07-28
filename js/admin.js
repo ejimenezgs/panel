@@ -220,15 +220,32 @@
   function toast(message){ const el=$('#toast'); el.textContent=message; el.classList.add('is-visible'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('is-visible'),2800); }
   function formatDate(value){ try{ const date=value?.toDate?value.toDate():new Date(value); return new Intl.DateTimeFormat('es-MX',{dateStyle:'medium',timeStyle:'short'}).format(date); }catch{return '—';} }
   function updateOrdersBadge(){ const count=state.orders.filter(order=>String(order.status||'Nueva').trim().toLowerCase()==='nueva').length; const badge=$('#orders-badge'); if(!badge)return; if(count===0){ badge.hidden=true; badge.textContent=''; return; } badge.textContent=count>99?'99+':String(count); badge.hidden=false; }
-  async function loadOrders(){ const body=$('#orders-body'); if(body)body.innerHTML='<tr><td colspan="6">Cargando órdenes…</td></tr>'; try{ state.orders=await cloud.loadOrders(); updateOrdersBadge(); if(body)renderOrders(); }catch(error){ console.error(error); if(body)body.innerHTML='<tr><td colspan="6">No fue posible cargar las órdenes.</td></tr>'; } }
+  async function loadOrders(){ const body=$('#orders-body'); if(body)body.innerHTML='<tr><td colspan="8">Cargando órdenes…</td></tr>'; try{ state.orders=await cloud.loadOrders(); updateOrdersBadge(); if(body)renderOrders(); }catch(error){ console.error(error); if(body)body.innerHTML='<tr><td colspan="8">No fue posible cargar las órdenes.</td></tr>'; } }
   function startOrdersListener(){
     if(typeof cloud.subscribeOrders!=='function'){ loadOrders(); return; }
     cloud.subscribeOrders(
       orders=>{ state.orders=orders; updateOrdersBadge(); if($('#orders-body'))renderOrders(); },
-      ()=>{ const body=$('#orders-body'); if(body&&!state.orders.length)body.innerHTML='<tr><td colspan="6">No fue posible actualizar las órdenes.</td></tr>'; }
+      ()=>{ const body=$('#orders-body'); if(body&&!state.orders.length)body.innerHTML='<tr><td colspan="8">No fue posible actualizar las órdenes.</td></tr>'; }
     );
   }
-  function renderOrders(){ const body=$('#orders-body'); const empty=$('#orders-empty'); empty.hidden=state.orders.length>0; body.innerHTML=state.orders.map(order=>{ const itemCount=Array.isArray(order.items)?order.items.reduce((sum,item)=>sum+(Number(item.quantity)||1),0):0; const delivery=order.customer?.deliveryType||order.deliveryType||''; return `<tr><td><strong>${esc(order.folio||order.id)}</strong><small>${itemCount} producto${itemCount===1?'':'s'}</small></td><td><strong>${esc(order.customer?.name||'—')}</strong><small>${esc(order.customer?.phone||'')}${delivery?` · ${esc(delivery)}`:''}</small></td><td>${esc(formatDate(order.createdAt))}</td><td>${esc(money(order.total??0))}</td><td><select class="order-status" data-order-status="${esc(order.id)}">${['Nueva','Contactado','Cotización enviada','Confirmada','Pagada','En preparación','Entregada','Cancelada'].map(status=>`<option ${status===(order.status||'Nueva')?'selected':''}>${status}</option>`).join('')}</select></td><td><button class="row-action" type="button" data-order-whatsapp="${esc(order.customer?.phone||'')}" data-order-folio="${esc(order.folio||'')}" aria-label="Dar seguimiento por WhatsApp"><i data-lucide="message-circle"></i></button></td></tr>`; }).join(''); renderLucide(); }
+  function orderSaleChannel(order){
+    const raw=String(order.saleChannel||order.salesChannel||order.paymentMethod||order.checkoutMode||order.orderMode||'').trim().toLowerCase();
+    const hasStripe=raw.includes('stripe')||Boolean(order.stripeSessionId||order.stripePaymentIntentId||order.paymentIntentId||order.payment?.stripeSessionId||order.payment?.paymentIntentId);
+    if(hasStripe)return {key:'stripe',label:'Stripe'};
+    if(raw.includes('whatsapp')||raw.includes('assisted')||raw.includes('asist'))return {key:'whatsapp',label:'WhatsApp'};
+    return {key:'whatsapp',label:'WhatsApp'};
+  }
+  function orderPaymentState(order,channel){
+    if(channel.key!=='stripe')return {key:'not-applicable',label:'—'};
+    const raw=String(order.paymentStatus||order.stripePaymentStatus||order.payment?.status||order.refundStatus||'').trim().toLowerCase();
+    const orderStatus=String(order.status||'').trim().toLowerCase();
+    const refunded=order.refunded===true||Number(order.amountRefunded||order.payment?.amountRefunded||0)>0||raw.includes('refund')||raw.includes('reembols')||raw.includes('devol');
+    if(refunded)return {key:'refunded',label:'Devolución'};
+    if(['paid','succeeded','success','complete','completed'].includes(raw)||raw.includes('paid')||raw.includes('succeed')||orderStatus==='pagada')return {key:'paid',label:'Pagado'};
+    if(['cancelled','canceled','expired','failed','void','voided'].includes(raw)||raw.includes('cancel')||raw.includes('expire')||raw.includes('fail')||orderStatus==='cancelada')return {key:'cancelled',label:'Cancelada'};
+    return {key:'pending',label:'Pendiente'};
+  }
+  function renderOrders(){ const body=$('#orders-body'); const empty=$('#orders-empty'); empty.hidden=state.orders.length>0; body.innerHTML=state.orders.map(order=>{ const itemCount=Array.isArray(order.items)?order.items.reduce((sum,item)=>sum+(Number(item.quantity)||1),0):0; const delivery=order.customer?.deliveryType||order.deliveryType||''; const saleChannel=orderSaleChannel(order); const paymentState=orderPaymentState(order,saleChannel); return `<tr><td><strong>${esc(order.folio||order.id)}</strong><small>${itemCount} producto${itemCount===1?'':'s'}</small></td><td><strong>${esc(order.customer?.name||'—')}</strong><small>${esc(order.customer?.phone||'')}${delivery?` · ${esc(delivery)}`:''}</small></td><td>${esc(formatDate(order.createdAt))}</td><td>${esc(money(order.total??0))}</td><td><span class="order-pill order-pill--payment is-${esc(paymentState.key)}">${esc(paymentState.label)}</span></td><td><span class="order-pill order-pill--channel is-${esc(saleChannel.key)}">${esc(saleChannel.label)}</span></td><td><select class="order-status" data-order-status="${esc(order.id)}">${['Nueva','Contactado','Cotización enviada','Confirmada','Pagada','En preparación','Entregada','Cancelada'].map(status=>`<option ${status===(order.status||'Nueva')?'selected':''}>${status}</option>`).join('')}</select></td><td><button class="row-action" type="button" data-order-whatsapp="${esc(order.customer?.phone||'')}" data-order-folio="${esc(order.folio||'')}" aria-label="Dar seguimiento por WhatsApp"><i data-lucide="message-circle"></i></button></td></tr>`; }).join(''); renderLucide(); }
 
   function normalizeMessage(raw){
     const source=String(raw.source||raw.site||raw.origin||'casaglick.com').replace(/^https?:\/\//,'').replace(/\/$/,'');
