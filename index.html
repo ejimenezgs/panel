@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/admin.css?v=28" />
+  <link rel="stylesheet" href="css/admin.css?v=29" />
 </head>
 <body class="auth-signed-out">
   <section class="login-screen" id="login-screen" aria-labelledby="login-title">
@@ -145,7 +145,7 @@
       <section class="view" id="view-orders">
         <section class="panel orders-panel">
           <div class="panel__header"><div><h2>Órdenes</h2><p>Solicitudes generadas desde la bolsa de Casa Glick.</p></div><button class="button button--ghost" id="refresh-orders" type="button"><i data-lucide="refresh-cw"></i><span>Actualizar</span></button></div>
-          <div class="table-wrap"><table class="products-table orders-table"><thead><tr><th>Folio</th><th>Cliente</th><th>Fecha</th><th>Total</th><th>Pago</th><th>Venta</th><th>Estado</th><th></th></tr></thead><tbody id="orders-body"></tbody></table></div>
+          <div class="table-wrap"><table class="products-table orders-table"><thead><tr><th>Folio</th><th>Cliente</th><th>Fecha</th><th>Total</th><th>Pago</th><th>Estado</th><th></th></tr></thead><tbody id="orders-body"></tbody></table></div>
           <div class="empty-state" id="orders-empty" hidden><strong>No hay órdenes todavía</strong><span>Las solicitudes aparecerán aquí cuando un cliente finalice su bolsa.</span></div>
         </section>
       </section>
@@ -293,6 +293,6 @@
   <script src="js/firebase-config.js?v=25"></script>
   <script src="js/shop-content-schema.js?v=26"></script>
   <script src="https://shop.casaglick.com/js/shop-content-schema.js?v=63"></script>
-  <script type="module" src="js/auth.js?v=28"></script>
+  <script type="module" src="js/auth.js?v=29"></script>
 </body>
 </html>

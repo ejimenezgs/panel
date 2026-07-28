@@ -135,6 +135,4 @@
 .order-pill--payment.is-refunded{background:#f3ecdf;color:#8b6429}
 .order-pill--payment.is-cancelled{background:#f7e9e7;color:#a64a3d}
 .order-pill--payment.is-pending{background:#f0eee9;color:#68645e}
-.order-pill--payment.is-not-applicable{background:transparent;color:#9b9790;padding-left:0;padding-right:0}
-.order-pill--channel.is-stripe{background:#eeeafd;color:#635bff}
-.order-pill--channel.is-whatsapp{background:#e7f3eb;color:#237b4b}
+.order-pill--payment.is-whatsapp{background:#e7f3eb;color:#237b4b}
