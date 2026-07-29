@@ -136,3 +136,5 @@
 .order-pill--payment.is-cancelled{background:#f7e9e7;color:#a64a3d}
 .order-pill--payment.is-pending{background:#f0eee9;color:#68645e}
 .order-pill--payment.is-whatsapp{background:#e7f3eb;color:#237b4b}
+
+.row-actions{display:flex;align-items:center;justify-content:flex-end;gap:4px}.row-action--danger{color:#a74438}.row-action--danger:hover{background:#f7e9e7;color:#8f3027}.button--danger{background:#fff;color:#9f3f34;border-color:#d9a9a3}.button--danger:hover{background:#f7e9e7;border-color:#c9867d}.button--danger:disabled{opacity:.55;cursor:wait}.message-drawer__footer{justify-content:space-between}.message-drawer__footer #message-reply{margin-left:auto}

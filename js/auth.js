@@ -36,6 +36,7 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
+  deleteDoc,
   writeBatch
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 import { getDownloadURL, getStorage, ref, uploadBytes } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-storage.js';
@@ -72,7 +73,7 @@ function loadAdmin() {
   if (adminLoaded) return;
   adminLoaded = true;
   const script = document.createElement('script');
-  script.src = 'js/admin.js?v=29';
+  script.src = 'js/admin.js?v=30';
   script.defer = true;
   document.body.appendChild(script);
 }
@@ -81,6 +82,7 @@ function showAdmin(user) {
   document.body.classList.remove('auth-loading', 'auth-signed-out');
   document.body.classList.add('auth-signed-in');
   document.body.dataset.userEmail = user.email || '';
+  document.body.dataset.userUid = user.uid || '';
   loadAdmin();
   icons();
 }
@@ -198,6 +200,9 @@ if (!isConfigured()) {
         updatedBy: auth.currentUser?.email || ''
       });
     },
+    async deleteOrder(orderId) {
+      await deleteDoc(doc(db, 'orders', orderId));
+    },
     async loadMessages() {
       const snapshot = await getDocs(query(collection(db, 'contactMessages'), orderBy('createdAt', 'desc')));
       return snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
@@ -220,6 +225,9 @@ if (!isConfigured()) {
         updatedAt: serverTimestamp(),
         updatedBy: auth.currentUser?.email || ''
       });
+    },
+    async deleteMessage(messageId) {
+      await deleteDoc(doc(db, 'contactMessages', messageId));
     }
   };
 
