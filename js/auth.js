@@ -73,7 +73,7 @@ function loadAdmin() {
   if (adminLoaded) return;
   adminLoaded = true;
   const script = document.createElement('script');
-  script.src = 'js/admin.js?v=31';
+  script.src = 'js/admin.js?v=33';
   script.defer = true;
   document.body.appendChild(script);
 }

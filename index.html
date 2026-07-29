@@ -267,6 +267,28 @@
     </div>
   </aside>
 
+  <div class="order-backdrop" id="order-backdrop" hidden></div>
+  <aside class="order-drawer" id="order-drawer" aria-hidden="true" aria-label="Detalle de la orden">
+    <div class="drawer__header">
+      <div><p class="eyebrow">DETALLE DE ORDEN</p><h2 id="order-drawer-folio">Orden</h2></div>
+      <button class="drawer__close icon-button" id="close-order-drawer" type="button" aria-label="Cerrar"><i data-lucide="x"></i></button>
+    </div>
+    <div class="order-drawer__body">
+      <div class="order-details__summary">
+        <div><span>Fecha</span><strong id="order-drawer-date">—</strong></div>
+        <div><span>Estado</span><strong id="order-drawer-status">—</strong></div>
+        <div><span>Pago</span><span id="order-drawer-payment" class="order-pill order-pill--payment is-pending">—</span></div>
+      </div>
+      <section class="order-details__section"><div class="order-details__heading"><span>Productos</span></div><div id="order-drawer-items" class="order-details__items"></div></section>
+      <section class="order-details__section"><div class="order-details__heading"><span>Datos del cliente</span></div><div id="order-drawer-customer" class="order-details__customer"></div></section>
+      <section class="order-details__section"><div class="order-details__heading"><span>Notas</span></div><p id="order-drawer-notes" class="order-details__notes">—</p></section>
+    </div>
+    <div class="drawer__footer order-drawer__footer">
+      <div><span>Subtotal</span><strong id="order-drawer-subtotal">—</strong></div>
+      <div><span>Total</span><strong id="order-drawer-total">—</strong></div>
+    </div>
+  </aside>
+
   <div class="message-backdrop" id="message-backdrop" hidden></div>
   <aside class="message-drawer" id="message-drawer" aria-hidden="true" aria-label="Detalle del mensaje">
     <div class="drawer__header">
@@ -283,17 +305,22 @@
       <div class="message-content"><span>Mensaje</span><p id="message-drawer-text">—</p></div>
     </div>
     <div class="drawer__footer message-drawer__footer">
-      <button class="button button--danger" id="delete-message" type="button" hidden><i data-lucide="trash-2"></i><span>Eliminar mensaje</span></button>
+      <div class="context-menu context-menu--drawer" id="message-actions-menu" hidden>
+        <button class="button button--ghost context-menu__trigger" id="message-actions-toggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Más opciones"><i data-lucide="more-vertical"></i></button>
+        <div class="context-menu__panel context-menu__panel--up" role="menu" hidden>
+          <button class="context-menu__item context-menu__item--danger" id="delete-message" type="button" role="menuitem"><i data-lucide="trash-2"></i><span>Eliminar</span></button>
+        </div>
+      </div>
       <a class="button button--dark" id="message-reply" href="#"><i data-lucide="reply"></i><span>Responder</span></a>
     </div>
   </aside>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="js/catalog-api.js?v=31"></script>
-  <script src="js/firebase-config.js?v=31"></script>
-  <script src="js/shop-content-schema.js?v=31"></script>
+  <script src="js/catalog-api.js?v=33"></script>
+  <script src="js/firebase-config.js?v=33"></script>
+  <script src="js/shop-content-schema.js?v=33"></script>
   <script src="https://shop.casaglick.com/js/shop-content-schema.js?v=63"></script>
-  <script type="module" src="js/auth.js?v=31"></script>
+  <script type="module" src="js/auth.js?v=33"></script>
 </body>
 </html>
