@@ -28,7 +28,7 @@ Los datos se guardan en Firestore en `shopContent/home` como objetos directos (`
 Las imagenes pueden cargarse a Firebase Storage bajo `shop-content/{sectionKey}/` o indicarse mediante URL.
 Publicar `firestore.rules` y `storage.rules` desde Firebase Console antes de usar la funcion de subida.
 
-## Subida de imágenes de Web Design a GoDaddy (v35)
+## Subida de imágenes de Web Design a GoDaddy (v36)
 
 El Panel publica imágenes mediante `api/upload-shop-image.php`. El endpoint valida el ID token de Firebase del administrador y guarda archivos en la ruta hermana de Shop:
 

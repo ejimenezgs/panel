@@ -176,18 +176,34 @@ if (!isConfigured()) {
       const formData = new FormData();
       formData.append('section', sectionKey);
       formData.append('image', file, file.name || 'image');
-      const response = await fetch('api/upload-shop-image.php', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-        credentials: 'same-origin'
-      });
-      let payload = {};
-      try { payload = await response.json(); } catch {}
-      if (!response.ok || !payload?.ok || !payload?.url) {
-        throw new Error(payload?.error || `No fue posible subir la imagen (HTTP ${response.status}).`);
+      const endpointCandidates = [
+        new URL('/api/upload-shop-image.php', window.location.origin).href,
+        new URL('/upload-shop-image.php', window.location.origin).href,
+        new URL('api/upload-shop-image.php', window.location.href).href
+      ];
+      let lastError = new Error('No fue posible localizar el servicio de carga de imágenes.');
+      for (const endpoint of [...new Set(endpointCandidates)]) {
+        const requestBody = new FormData();
+        requestBody.append('section', sectionKey);
+        requestBody.append('image', file, file.name || 'image');
+        try {
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: requestBody,
+            credentials: 'same-origin'
+          });
+          let payload = {};
+          try { payload = await response.json(); } catch {}
+          if (response.ok && payload?.ok && payload?.url) return payload.url;
+          lastError = new Error(payload?.error || `No fue posible subir la imagen (HTTP ${response.status}) en ${endpoint}.`);
+          if (response.status !== 404) throw lastError;
+        } catch (error) {
+          lastError = error instanceof Error ? error : new Error(String(error));
+          if (!/HTTP 404/.test(lastError.message)) throw lastError;
+        }
       }
-      return payload.url;
+      throw lastError;
     },
     async saveShopContentImage(sectionKey, imageUrl) {
       await updateDoc(shopContentRef, {
