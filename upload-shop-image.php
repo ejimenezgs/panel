@@ -7,6 +7,7 @@ const MAX_IMAGE_PIXELS = 30000000;
 const MAX_OUTPUT_EDGE = 3000;
 const WEBP_QUALITY = 86;
 const ASSET_PUBLIC_BASE = 'https://casaglick.com/assets/casa-glick/shop-content';
+const ASSET_PHYSICAL_ROOT = '/home/gyu5la0fbzjq/public_html/casaglick.com/assets/casa-glick/shop-content';
 const SUPER_ADMIN_UID = 'nJIkImK4cDdiXghn8wYecqyw1M03';
 const ADMIN_EMAILS = [
     'hello@oaxsun.tech',
@@ -168,7 +169,7 @@ try {
     }
     if (!$publicHtml) throw new RuntimeException('No fue posible localizar la carpeta public_html.');
 
-    $uploadRoot = getenv('CASA_GLICK_ASSET_ROOT') ?: $publicHtml . '/assets/casa-glick/shop-content';
+    $uploadRoot = getenv('CASA_GLICK_ASSET_ROOT') ?: ASSET_PHYSICAL_ROOT;
     $targetDir = rtrim($uploadRoot, '/') . '/' . $section;
     if (!is_dir($targetDir) && !mkdir($targetDir, 0755, true) && !is_dir($targetDir)) throw new RuntimeException('No fue posible crear la carpeta universal de imágenes.');
 

@@ -191,3 +191,6 @@
 .order-drawer__footer strong{font-size:15px}
 .order-drawer__footer>div:last-child strong{font-size:20px}
 @media(max-width:620px){.order-drawer__body{padding:18px}.order-details__summary{grid-template-columns:1fr}.order-details__summary>div{border-right:0;border-bottom:1px solid var(--line)}.order-details__summary>div:last-child{border-bottom:0}.order-details__customer{grid-template-columns:1fr}.order-details__customer>div{border-right:0}.order-detail-item{grid-template-columns:50px minmax(0,1fr)}.order-detail-item img{width:50px;height:50px}.order-detail-item b{grid-column:2}.order-drawer__footer{gap:18px}}
+
+/* v38: repeatable Web Design fields */
+.shop-field-toggle{align-self:end;min-height:46px;padding:0 2px}.shop-section-form .shop-field-toggle.is-wide{grid-column:1/-1}
