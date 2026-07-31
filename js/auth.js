@@ -39,7 +39,6 @@ import {
   deleteDoc,
   writeBatch
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
-import { getDownloadURL, getStorage, ref, uploadBytes } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-storage.js';
 
 const config = window.CASA_GLICK_FIREBASE_CONFIG || {};
 const loginForm = document.querySelector('#login-form');
@@ -73,7 +72,7 @@ function loadAdmin() {
   if (adminLoaded) return;
   adminLoaded = true;
   const script = document.createElement('script');
-  script.src = 'js/admin.js?v=34';
+  script.src = 'js/admin.js?v=35';
   script.defer = true;
   document.body.appendChild(script);
 }
@@ -119,7 +118,6 @@ if (!isConfigured()) {
   const overridesCollection = collection(db, 'catalogProductOverrides');
   const settingsRef = doc(db, 'catalogSettings', 'admin');
   const shopContentRef = doc(db, 'shopContent', 'home');
-  const storage = getStorage(app);
 
   window.CasaGlickFirestore = {
     async loadOverrides() {
@@ -173,10 +171,31 @@ if (!isConfigured()) {
       }, { merge: true });
     },
     async uploadShopContentImage(sectionKey, file) {
-      const safeName = String(file.name || 'image').replace(/[^a-zA-Z0-9._-]+/g, '-');
-      const objectRef = ref(storage, `shop-content/${sectionKey}/${Date.now()}-${safeName}`);
-      const result = await uploadBytes(objectRef, file, { contentType: file.type || 'image/jpeg' });
-      return getDownloadURL(result.ref);
+      if (!auth.currentUser) throw new Error('La sesión administrativa no está disponible.');
+      const token = await auth.currentUser.getIdToken();
+      const formData = new FormData();
+      formData.append('section', sectionKey);
+      formData.append('image', file, file.name || 'image');
+      const response = await fetch('api/upload-shop-image.php', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+        credentials: 'same-origin'
+      });
+      let payload = {};
+      try { payload = await response.json(); } catch {}
+      if (!response.ok || !payload?.ok || !payload?.url) {
+        throw new Error(payload?.error || `No fue posible subir la imagen (HTTP ${response.status}).`);
+      }
+      return payload.url;
+    },
+    async saveShopContentImage(sectionKey, imageUrl) {
+      await updateDoc(shopContentRef, {
+        [`${sectionKey}.imageUrl`]: imageUrl,
+        [`sections.${sectionKey}.imageUrl`]: imageUrl,
+        updatedAt: serverTimestamp(),
+        updatedBy: auth.currentUser?.email || ''
+      });
     },
     async loadOrders() {
       const snapshot = await getDocs(query(collection(db, 'orders'), orderBy('createdAt', 'desc')));
