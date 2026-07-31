@@ -28,12 +28,14 @@ Los datos se guardan en Firestore en `shopContent/home` como objetos directos (`
 Las imagenes pueden cargarse a Firebase Storage bajo `shop-content/{sectionKey}/` o indicarse mediante URL.
 Publicar `firestore.rules` y `storage.rules` desde Firebase Console antes de usar la funcion de subida.
 
-## Subida de imágenes de Web Design a GoDaddy (v36)
+## Subida universal de imágenes de Web Design a GoDaddy (v37)
 
-El Panel publica imágenes mediante `api/upload-shop-image.php`. El endpoint valida el ID token de Firebase del administrador y guarda archivos en la ruta hermana de Shop:
+El endpoint PHP guarda las imágenes compartidas en:
 
-`/public_html/shop/uploads/shop-content/{section}/`
+`/public_html/assets/casa-glick/shop-content/{section}/`
 
-Las URLs resultantes usan `https://shop.casaglick.com/uploads/shop-content/...` y se guardan inmediatamente en `shopContent/home`, por lo que Shop puede reflejar el cambio en tiempo real.
+Las URLs públicas usan:
 
-Formatos aceptados: JPG, PNG y WebP. Tamaño máximo: 8 MB. Si GD/WebP está disponible, la imagen se convierte a WebP y se limita a 3000 px en su lado mayor.
+`https://casaglick.com/assets/casa-glick/shop-content/{section}/{file}`
+
+La carpeta es independiente de Panel, Shop y la web principal, por lo que cualquiera de los dos sitios puede consumir las mismas imágenes. El endpoint crea automáticamente las subcarpetas por sección y guarda la URL resultante en `shopContent/home`.

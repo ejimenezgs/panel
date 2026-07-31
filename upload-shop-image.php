@@ -6,7 +6,7 @@ const MAX_UPLOAD_BYTES = 8388608; // 8 MB
 const MAX_IMAGE_PIXELS = 30000000;
 const MAX_OUTPUT_EDGE = 3000;
 const WEBP_QUALITY = 86;
-const SHOP_PUBLIC_BASE = 'https://shop.casaglick.com/uploads/shop-content';
+const ASSET_PUBLIC_BASE = 'https://casaglick.com/assets/casa-glick/shop-content';
 const SUPER_ADMIN_UID = 'nJIkImK4cDdiXghn8wYecqyw1M03';
 const ADMIN_EMAILS = [
     'hello@oaxsun.tech',
@@ -153,10 +153,24 @@ try {
     $height = (int)$size[1];
     if ($width * $height > MAX_IMAGE_PIXELS) throw new RuntimeException('La imagen tiene dimensiones demasiado grandes.');
 
-    $publicHtml = dirname(rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/'));
-    $uploadRoot = getenv('SHOP_UPLOAD_ROOT') ?: $publicHtml . '/shop/uploads/shop-content';
+    // Resolve the shared /public_html root from the endpoint location instead of
+    // relying on DOCUMENT_ROOT, which may point to the panel subdomain folder.
+    $cursor = __DIR__;
+    $publicHtml = null;
+    for ($i = 0; $i < 8; $i++) {
+        if (basename($cursor) === 'public_html') {
+            $publicHtml = $cursor;
+            break;
+        }
+        $parent = dirname($cursor);
+        if ($parent === $cursor) break;
+        $cursor = $parent;
+    }
+    if (!$publicHtml) throw new RuntimeException('No fue posible localizar la carpeta public_html.');
+
+    $uploadRoot = getenv('CASA_GLICK_ASSET_ROOT') ?: $publicHtml . '/assets/casa-glick/shop-content';
     $targetDir = rtrim($uploadRoot, '/') . '/' . $section;
-    if (!is_dir($targetDir) && !mkdir($targetDir, 0755, true) && !is_dir($targetDir)) throw new RuntimeException('No fue posible crear la carpeta de imágenes en Shop.');
+    if (!is_dir($targetDir) && !mkdir($targetDir, 0755, true) && !is_dir($targetDir)) throw new RuntimeException('No fue posible crear la carpeta universal de imágenes.');
 
     $protection = rtrim($uploadRoot, '/') . '/.htaccess';
     if (!is_file($protection)) {
@@ -172,13 +186,13 @@ try {
         $filename = $id . '.webp';
         $destination = $targetDir . '/' . $filename;
     } elseif (!move_uploaded_file((string)$file['tmp_name'], $destination)) {
-        throw new RuntimeException('No fue posible guardar la imagen en Shop.');
+        throw new RuntimeException('No fue posible guardar la imagen en la carpeta universal.');
     }
     @chmod($destination, 0644);
 
     respond(201, [
         'ok' => true,
-        'url' => SHOP_PUBLIC_BASE . '/' . rawurlencode($section) . '/' . rawurlencode($filename),
+        'url' => ASSET_PUBLIC_BASE . '/' . rawurlencode($section) . '/' . rawurlencode($filename),
         'section' => $section,
         'filename' => $filename,
     ]);
