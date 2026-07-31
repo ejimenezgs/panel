@@ -86,7 +86,16 @@
   function renderShopContent(){
     const list=$('#shop-content-list'); if(!list)return;
     const definitions=orderedDefinitions(state.shopContent.definitions||SHOP_SECTION_DEFINITIONS,state.shopContent.sectionOrder);
-    list.innerHTML=definitions.map((def,index)=>{ const item=state.shopContent.sections?.[def.key]||defaultSection(def); const fields=(def.fields||[]).map(field=>renderField(def,item,field)).join(''); const locked=Boolean(def.lockedPosition); return `<article class="shop-section-card ${locked?'is-order-locked':''}" data-section-card="${def.key}" ${locked?'':'draggable="true"'}><div class="shop-section-card__header" data-toggle-section-card="${def.key}"><button class="shop-section-card__drag" type="button" aria-label="${locked?'Posición fija':'Arrastrar para cambiar el orden'}" title="${locked?'Esta sección mantiene una posición fija':'Arrastra para cambiar el orden'}" ${locked?'disabled':''}><i data-lucide="${locked?'lock':'grip-vertical'}"></i></button><div class="shop-section-card__identity"><i data-lucide="${def.icon||'layout'}"></i><div><strong>${esc(def.label||def.key)}</strong><small>${esc(def.description||'Bloque editable de Shop.')}</small></div></div><div class="shop-section-card__controls"><label class="toggle-row shop-section-card__toggle" title="Mostrar u ocultar sección"><span>Visible</span><input type="checkbox" data-section-field="enabled" data-section-key="${def.key}" ${item.enabled!==false?'checked':''}><i></i></label><i class="shop-section-card__chevron" data-lucide="chevron-down"></i></div></div><div class="shop-section-card__body"><div class="shop-section-form">${fields}</div></div></article>`; }).join('');
+    list.innerHTML=definitions.map(def=>{
+      const item=state.shopContent.sections?.[def.key]||defaultSection(def);
+      const allFields=Array.isArray(def.fields)?def.fields:[];
+      const modalFields=allFields.filter(field=>String(field.key||'').startsWith('modal'));
+      const primaryFields=allFields.filter(field=>!String(field.key||'').startsWith('modal'));
+      const primaryMarkup=primaryFields.map(field=>renderField(def,item,field)).join('');
+      const modalMarkup=modalFields.length?`<section class="shop-nested-editor"><button class="shop-nested-editor__header" type="button" data-toggle-nested-editor="${def.key}:modal" aria-expanded="false"><span><i data-lucide="panel-top-open"></i><span><strong>Editor del modal</strong><small>Textos, botón y puntos informativos del modal.</small></span></span><i class="shop-nested-editor__chevron" data-lucide="chevron-down"></i></button><div class="shop-nested-editor__body"><div class="shop-section-form shop-section-form--nested">${modalFields.map(field=>renderField(def,item,field)).join('')}</div></div></section>`:'';
+      const locked=Boolean(def.lockedPosition);
+      return `<article class="shop-section-card ${locked?'is-order-locked':''}" data-section-card="${def.key}" ${locked?'':'draggable="true"'}><div class="shop-section-card__header" data-toggle-section-card="${def.key}"><button class="shop-section-card__drag" type="button" aria-label="${locked?'Posición fija':'Arrastrar para cambiar el orden'}" title="${locked?'Esta sección mantiene una posición fija':'Arrastra para cambiar el orden'}" ${locked?'disabled':''}><i data-lucide="${locked?'lock':'grip-vertical'}"></i></button><div class="shop-section-card__identity"><i data-lucide="${def.icon||'layout'}"></i><div><strong>${esc(def.label||def.key)}</strong><small>${esc(def.description||'Bloque editable de Shop.')}</small></div></div><div class="shop-section-card__controls"><label class="toggle-row shop-section-card__toggle" title="Mostrar u ocultar sección"><span>Visible</span><input type="checkbox" data-section-field="enabled" data-section-key="${def.key}" ${item.enabled!==false?'checked':''}><i></i></label><i class="shop-section-card__chevron" data-lucide="chevron-down"></i></div></div><div class="shop-section-card__body"><div class="shop-section-form">${primaryMarkup}</div>${modalMarkup}</div></article>`;
+    }).join('');
     renderLucide();
   }
   function needsSchemaSync(raw,normalized){
@@ -403,7 +412,20 @@
     };
     syncSettingsControls();
     if(stripeToggle){ stripeToggle.addEventListener('change',updateStripeModeUI); }
-    $('#shop-content-list')?.addEventListener('click',e=>{ const header=e.target.closest('[data-toggle-section-card]'); if(!header||e.target.closest('label')||e.target.closest('.shop-section-card__drag'))return; header.closest('.shop-section-card')?.classList.toggle('is-open'); });
+    $('#shop-content-list')?.addEventListener('click',e=>{
+      const nestedToggle=e.target.closest('[data-toggle-nested-editor]');
+      if(nestedToggle){
+        e.preventDefault();
+        e.stopPropagation();
+        const nested=nestedToggle.closest('.shop-nested-editor');
+        const isOpen=nested?.classList.toggle('is-open');
+        nestedToggle.setAttribute('aria-expanded',isOpen?'true':'false');
+        return;
+      }
+      const header=e.target.closest('[data-toggle-section-card]');
+      if(!header||e.target.closest('label')||e.target.closest('.shop-section-card__drag'))return;
+      header.closest('.shop-section-card')?.classList.toggle('is-open');
+    });
     $('#shop-content-list')?.addEventListener('input',e=>{ const input=e.target.closest('[data-section-field]'); if(!input)return; const status=$('#shop-content-status'); if(status){status.textContent='Cambios sin guardar';status.classList.remove('is-saved');} if(input.dataset.sectionField==='imageUrl'){ const preview=$(`[data-section-preview="${input.dataset.sectionKey}"]`); if(preview)preview.src=input.value.trim()||FALLBACK_IMAGE; } });
     $('#shop-content-list')?.addEventListener('change',async e=>{ const fileInput=e.target.closest('[data-section-upload]'); if(!fileInput||!fileInput.files?.[0])return; const key=fileInput.dataset.sectionUpload; const field=fileInput.dataset.sectionUploadField||'imageUrl'; const token=`${key}:${field}`; const progress=$(`[data-section-progress="${token}"]`); const file=fileInput.files[0]; if(progress)progress.textContent='Subiendo a GoDaddy…'; fileInput.disabled=true; try{ const url=await cloud.uploadShopContentImage(key,file); const content=collectShopContent(); if(!content.sections[key])content.sections[key]={}; content.sections[key][field]=url; const payload=shopContentPayload(content); await cloud.saveShopContent(payload); state.shopContent=normalizeShopContent(payload); const urlInput=$(`[data-section-key="${key}"][data-section-field="${field}"]`); const preview=$(`[data-section-preview="${token}"]`); if(urlInput)urlInput.value=url; if(preview)preview.src=url; if(progress)progress.textContent='Imagen publicada en Shop.'; const status=$('#shop-content-status'); if(status){status.textContent='Imagen sincronizada';status.classList.add('is-saved');} toast('Imagen subida y actualizada en Shop.'); }catch(error){console.error(error);if(progress)progress.textContent=error?.message||'No se pudo subir la imagen.';toast('No se pudo publicar la imagen.');}finally{fileInput.disabled=false;fileInput.value='';} });
     $('#save-shop-content')?.addEventListener('click',async()=>{ const button=$('#save-shop-content'); const data=collectShopContent(); const payload=shopContentPayload(data); button.disabled=true; try{ await cloud.saveShopContent(payload); state.shopContent=normalizeShopContent(payload); const status=$('#shop-content-status'); if(status){status.textContent='Guardado';status.classList.add('is-saved');} toast('Contenido y visibilidad de Shop guardados en Firebase.'); }catch(error){console.error(error);toast('No se pudo guardar el contenido de Shop.');}finally{button.disabled=false;} });

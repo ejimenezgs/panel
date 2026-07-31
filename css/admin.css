@@ -194,3 +194,18 @@
 
 /* v38: repeatable Web Design fields */
 .shop-field-toggle{align-self:end;min-height:46px;padding:0 2px}.shop-section-form .shop-field-toggle.is-wide{grid-column:1/-1}
+
+
+/* v39 nested modal editor */
+.shop-nested-editor{grid-column:1/-1;margin-top:18px;border:1px solid var(--line);background:#fff}
+.shop-nested-editor__header{width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:15px 16px;border:0;background:#f5f3ee;color:var(--ink);text-align:left;cursor:pointer}
+.shop-nested-editor__header>span{display:flex;align-items:center;gap:12px;min-width:0}
+.shop-nested-editor__header>span>svg{width:18px;height:18px;flex:0 0 auto}
+.shop-nested-editor__header strong{display:block;font-size:11px}
+.shop-nested-editor__header small{display:block;margin-top:4px;color:var(--muted);font-size:9px;line-height:1.45}
+.shop-nested-editor__chevron{width:17px;height:17px;flex:0 0 auto;transition:transform .2s ease}
+.shop-nested-editor.is-open .shop-nested-editor__chevron{transform:rotate(180deg)}
+.shop-nested-editor__body{display:none;padding:0 16px 16px;border-top:1px solid var(--line)}
+.shop-nested-editor.is-open .shop-nested-editor__body{display:block}
+.shop-section-form--nested{padding-top:16px}
+@media(max-width:620px){.shop-nested-editor__header{padding:14px}.shop-nested-editor__body{padding:0 14px 14px}}
