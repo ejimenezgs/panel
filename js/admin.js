@@ -255,12 +255,14 @@
     const refunded=order.refunded===true||Number(order.amountRefunded||order.payment?.amountRefunded||0)>0||raw.includes('refund')||raw.includes('reembols')||raw.includes('devol');
     if(refunded)return {key:'refunded',label:'Devolución'};
     if(['paid','succeeded','success','complete','completed'].includes(raw)||raw.includes('paid')||raw.includes('succeed')||orderStatus==='pagada')return {key:'paid',label:'Pagado'};
-    if(['cancelled','canceled','expired','failed','void','voided'].includes(raw)||raw.includes('cancel')||raw.includes('expire')||raw.includes('fail')||orderStatus==='cancelada')return {key:'cancelled',label:'Cancelado'};
+    if(['expired','failed'].includes(raw)||raw.includes('expire')||raw.includes('fail')||orderStatus==='no completado')return {key:'cancelled',label:'No completado'};
+    if(['cancelled','canceled','void','voided'].includes(raw)||raw.includes('cancel')||orderStatus==='cancelada'||orderStatus==='cancelado')return {key:'cancelled',label:'Cancelado'};
     return {key:'pending',label:'Pendiente'};
   }
   function orderDisplayStatus(order,paymentState,channel){
     const raw=String(order.status||'Nueva').trim();
     const normalized=raw.toLowerCase();
+    if(channel?.key==='stripe' && paymentState?.label==='No completado') return 'No completado';
     if(channel?.key==='stripe' && paymentState?.key==='cancelled' && ['nueva','pendiente de pago','cancelada','cancelado',''].includes(normalized)) return 'No completado';
     if(['no completada','no completado','incompleta','incompleto'].includes(normalized)) return 'No completado';
     return raw||'Nueva';
@@ -299,7 +301,7 @@
     $('#order-drawer-customer').innerHTML=orderCustomerRows(order).map(([label,value])=>`<div><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('')||'<p class="order-details__empty">No hay datos del cliente.</p>';
     const items=Array.isArray(order.items)?order.items:[];
     $('#order-drawer-items').innerHTML=items.map((item,index)=>{ const qty=orderItemQty(item); const unit=orderItemUnitPrice(item); const total=Number(item?.total??item?.subtotal??(unit*qty))||0; const image=item?.image||item?.imageUrl||item?.images?.[0]||FALLBACK_IMAGE; return `<article class="order-detail-item"><img src="${esc(image)}" alt=""><div><strong>${esc(orderItemName(item,index))}</strong><span>${esc(item?.code||item?.sku||'')}</span><small>${qty} × ${esc(money(unit))}</small></div><b>${esc(money(total))}</b></article>`; }).join('')||'<p class="order-details__empty">No hay productos registrados.</p>';
-    $('#order-drawer-notes').textContent=order.notes||order.comments||order.customer?.notes||'Sin notas adicionales.';
+    const customerNotes=order.customerNotes||order.notes||order.comments||order.customer?.notes||order.customer?.comments||''; $('#order-drawer-notes').textContent=customerNotes||'Sin comentarios';
     $('#order-backdrop').hidden=false;
     requestAnimationFrame(()=>$('#order-drawer').classList.add('is-open'));
     $('#order-drawer').setAttribute('aria-hidden','false');
