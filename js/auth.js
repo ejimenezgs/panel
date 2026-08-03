@@ -72,7 +72,7 @@ function loadAdmin() {
   if (adminLoaded) return;
   adminLoaded = true;
   const script = document.createElement('script');
-  script.src = 'js/admin.js?v=38';
+  script.src = 'js/admin.js?v=40';
   script.defer = true;
   document.body.appendChild(script);
 }
@@ -118,6 +118,7 @@ if (!isConfigured()) {
   const overridesCollection = collection(db, 'catalogProductOverrides');
   const settingsRef = doc(db, 'catalogSettings', 'admin');
   const shopContentRef = doc(db, 'shopContent', 'home');
+const websiteContentRef = doc(db, 'websiteContent', 'home');
 
   window.CasaGlickFirestore = {
     async loadOverrides() {
@@ -159,10 +160,20 @@ if (!isConfigured()) {
         updatedBy: auth.currentUser?.email || ''
       }, { merge: true });
     },
-    async loadShopContent() {
-      const snapshot = await getDoc(shopContentRef);
+    async loadWebContent(siteKey = 'shop') {
+      const ref = siteKey === 'website' ? websiteContentRef : shopContentRef;
+      const snapshot = await getDoc(ref);
       return snapshot.exists() ? snapshot.data() : {};
     },
+    async saveWebContent(siteKey = 'shop', data = {}) {
+      const ref = siteKey === 'website' ? websiteContentRef : shopContentRef;
+      await setDoc(ref, {
+        ...data,
+        updatedAt: serverTimestamp(),
+        updatedBy: auth.currentUser?.email || ''
+      }, { merge: true });
+    },
+    async loadShopContent() { return this.loadWebContent('shop'); },
     async saveShopContent(data) {
       await setDoc(shopContentRef, {
         ...data,
@@ -170,11 +181,12 @@ if (!isConfigured()) {
         updatedBy: auth.currentUser?.email || ''
       }, { merge: true });
     },
-    async uploadShopContentImage(sectionKey, file) {
+    async uploadShopContentImage(sectionKey, file, siteKey = 'shop') {
       if (!auth.currentUser) throw new Error('La sesión administrativa no está disponible.');
       const token = await auth.currentUser.getIdToken();
       const formData = new FormData();
       formData.append('section', sectionKey);
+      formData.append('scope', siteKey === 'website' ? 'website-content' : 'shop-content');
       formData.append('image', file, file.name || 'image');
       const endpointCandidates = [
         new URL('/api/upload-shop-image.php', window.location.origin).href,
@@ -185,6 +197,7 @@ if (!isConfigured()) {
       for (const endpoint of [...new Set(endpointCandidates)]) {
         const requestBody = new FormData();
         requestBody.append('section', sectionKey);
+        requestBody.append('scope', siteKey === 'website' ? 'website-content' : 'shop-content');
         requestBody.append('image', file, file.name || 'image');
         try {
           const response = await fetch(endpoint, {

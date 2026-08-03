@@ -6,8 +6,8 @@ const MAX_UPLOAD_BYTES = 8388608; // 8 MB
 const MAX_IMAGE_PIXELS = 30000000;
 const MAX_OUTPUT_EDGE = 3000;
 const WEBP_QUALITY = 86;
-const ASSET_PUBLIC_BASE = 'https://casaglick.com/assets/casa-glick/shop-content';
-const ASSET_PHYSICAL_ROOT = '/home/gyu5la0fbzjq/public_html/casaglick.com/assets/casa-glick/shop-content';
+const ASSET_PUBLIC_BASE = 'https://casaglick.com/assets/casa-glick';
+const ASSET_PHYSICAL_BASE = '/home/gyu5la0fbzjq/public_html/casaglick.com/assets/casa-glick';
 const SUPER_ADMIN_UID = 'nJIkImK4cDdiXghn8wYecqyw1M03';
 const ADMIN_EMAILS = [
     'hello@oaxsun.tech',
@@ -139,6 +139,10 @@ try {
     }
 
     $section = safeSection((string)($_POST['section'] ?? ''));
+    $scope = (string) ($_POST['scope'] ?? 'shop-content');
+    if (!in_array($scope, ['shop-content', 'website-content'], true)) {
+        throw new RuntimeException('El destino de la imagen no es válido.');
+    }
     $file = $_FILES['image'] ?? null;
     if (!is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) throw new RuntimeException('No se recibió una imagen válida.');
     if ((int)$file['size'] <= 0 || (int)$file['size'] > MAX_UPLOAD_BYTES) throw new RuntimeException('La imagen debe pesar máximo 8 MB.');
@@ -169,7 +173,7 @@ try {
     }
     if (!$publicHtml) throw new RuntimeException('No fue posible localizar la carpeta public_html.');
 
-    $uploadRoot = getenv('CASA_GLICK_ASSET_ROOT') ?: ASSET_PHYSICAL_ROOT;
+    $uploadRoot = getenv('CASA_GLICK_ASSET_ROOT') ?: ASSET_PHYSICAL_BASE . DIRECTORY_SEPARATOR . $scope;
     $targetDir = rtrim($uploadRoot, '/') . '/' . $section;
     if (!is_dir($targetDir) && !mkdir($targetDir, 0755, true) && !is_dir($targetDir)) throw new RuntimeException('No fue posible crear la carpeta universal de imágenes.');
 
@@ -193,7 +197,7 @@ try {
 
     respond(201, [
         'ok' => true,
-        'url' => ASSET_PUBLIC_BASE . '/' . rawurlencode($section) . '/' . rawurlencode($filename),
+        'url' => ASSET_PUBLIC_BASE . '/' . rawurlencode($scope) . '/' . rawurlencode($section) . '/' . rawurlencode($filename),
         'section' => $section,
         'filename' => $filename,
     ]);

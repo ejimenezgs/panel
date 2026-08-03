@@ -182,9 +182,9 @@
           <div class="panel__header">
             <div>
               <h2>Web Design</h2>
-              <p>Administra el contenido, la visibilidad y el orden de las secciones de shop.casaglick.com. Arrastra los bloques desde el control lateral para reordenarlos.</p>
+              <p id="web-design-description">Administra el contenido, la visibilidad y el orden de las secciones del sitio seleccionado.</p>
             </div>
-            <span class="shop-content-settings__status" id="shop-content-status">Sin guardar</span>
+            <div class="web-design-site-selector"><label for="web-design-site">Sitio a editar</label><select id="web-design-site" aria-label="Seleccionar sitio a editar"><option value="shop">Shop · shop.casaglick.com</option><option value="website">Casa Glick · casaglick.com</option></select></div><span class="shop-content-settings__status" id="shop-content-status">Sin guardar</span>
           </div>
           <div class="shop-content-settings shop-content-settings--standalone">
             <div class="shop-content-list" id="shop-content-list"></div>
@@ -320,7 +320,8 @@
   <script src="js/catalog-api.js?v=37"></script>
   <script src="js/firebase-config.js?v=37"></script>
   <script src="js/shop-content-schema.js?v=38"></script>
+  <script src="js/website-content-schema.js?v=40"></script>
   <script src="https://shop.casaglick.com/js/shop-content-schema.js?v=64"></script>
-  <script type="module" src="js/auth.js?v=38"></script>
+  <script type="module" src="js/auth.js?v=40"></script>
 </body>
 </html>

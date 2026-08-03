@@ -209,3 +209,5 @@
 .shop-nested-editor.is-open .shop-nested-editor__body{display:block}
 .shop-section-form--nested{padding-top:16px}
 @media(max-width:620px){.shop-nested-editor__header{padding:14px}.shop-nested-editor__body{padding:0 14px 14px}}
+
+.web-design-site-selector{display:flex;align-items:center;gap:10px;margin-left:auto}.web-design-site-selector label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#777}.web-design-site-selector select{min-width:250px;border:1px solid #ddd;background:#fff;border-radius:8px;padding:10px 34px 10px 12px;font:inherit}.panel__header:has(.web-design-site-selector){align-items:center;gap:18px;flex-wrap:wrap}@media(max-width:720px){.web-design-site-selector{width:100%;margin-left:0;align-items:flex-start;flex-direction:column;gap:6px}.web-design-site-selector select{width:100%;min-width:0}}
