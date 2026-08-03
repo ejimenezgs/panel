@@ -39,3 +39,8 @@ Las URLs públicas usan:
 `https://casaglick.com/assets/casa-glick/shop-content/{section}/{file}`
 
 La carpeta es independiente de Panel, Shop y la web principal, por lo que cualquiera de los dos sitios puede consumir las mismas imágenes. El endpoint crea automáticamente las subcarpetas por sección y guarda la URL resultante en `shopContent/home`.
+
+
+## v41
+- El esquema de Web Design para Shop se carga únicamente desde el archivo local incluido en el Panel.
+- Se evita que una copia remota antigua sobrescriba los campos de imágenes de categorías en Productos.
