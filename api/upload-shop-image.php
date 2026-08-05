@@ -6,10 +6,10 @@ const MAX_UPLOAD_BYTES = 8388608; // 8 MB
 const MAX_IMAGE_PIXELS = 30000000;
 const MAX_OUTPUT_EDGE = 3000;
 const WEBP_QUALITY = 86;
-const SHOP_ASSET_PUBLIC_BASE = 'https://shop.casaglick.com/uploads';
-const SHOP_ASSET_PHYSICAL_BASE = '/home/gyu5la0fbzjq/public_html/shop/uploads';
-const WEBSITE_ASSET_PUBLIC_BASE = 'https://casaglick.com/assets/casa-glick/website-content';
-const WEBSITE_ASSET_PHYSICAL_BASE = '/home/gyu5la0fbzjq/public_html/casaglick.com/assets/casa-glick/website-content';
+const SHOP_ASSET_PUBLIC_BASE = 'https://assets.casaglick.com/shop';
+const SHOP_ASSET_PHYSICAL_BASE = '/home/gyu5la0fbzjq/public_html/assets/shop';
+const WEBSITE_ASSET_PUBLIC_BASE = 'https://assets.casaglick.com/casaglick';
+const WEBSITE_ASSET_PHYSICAL_BASE = '/home/gyu5la0fbzjq/public_html/assets/casaglick';
 const SUPER_ADMIN_UID = 'nJIkImK4cDdiXghn8wYecqyw1M03';
 const ADMIN_EMAILS = [
     'hello@oaxsun.tech',
@@ -160,8 +160,8 @@ try {
     $height = (int)$size[1];
     if ($width * $height > MAX_IMAGE_PIXELS) throw new RuntimeException('La imagen tiene dimensiones demasiado grandes.');
 
-    // Shop uses its own persistent uploads directory, outside the Shop repository.
-    // Website uploads keep their existing independent destination.
+    // Both sites use the shared persistent assets root, outside every deploy repository.
+    // The scope selects the isolated casaglick or shop subtree.
     if ($scope === 'shop-content') {
         $uploadRoot = SHOP_ASSET_PHYSICAL_BASE;
         $publicBase = SHOP_ASSET_PUBLIC_BASE;
