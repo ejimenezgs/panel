@@ -1,4 +1,4 @@
-# Casa Glick Panel v44
+# Casa Glick Panel v45
 
 Panel administrativo conectado a Shop y casaglick.com.
 
@@ -19,3 +19,11 @@ URLs públicas:
 - `https://assets.casaglick.com/casaglick/{section}/{file}`
 
 Las URLs antiguas no se migran ni se eliminan automáticamente. Firebase mantiene los mismos documentos y campos.
+
+
+## v45 — textos alternativos de imágenes
+
+- Cada campo de imagen de Web Design incluye ahora un campo de texto alternativo inmediatamente debajo.
+- Los campos se generan con el mismo esquema para Shop y Casa Glick.
+- Convención: `imageUrl` → `imageAlt`, `image1Url` → `image1Alt`, `categoryInteriorImageUrl` → `categoryInteriorImageAlt`.
+- Los valores se guardan en los documentos existentes `shopContent/home` y `websiteContent/home`, sin modificar las URLs ni la subida de archivos.

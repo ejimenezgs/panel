@@ -23,8 +23,27 @@
   function esc(value){ return String(value ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
   function categoryLabel(value){ return ({poltronas:'Sillones individuales',ottoman:'Ottoman',sillas:'Sillas',mesas:'Mesas',sofas:'Sofás',exterior:'Exterior',decoracion:'Decoración',iluminacion:'Iluminación',habitacion:'Habitación'})[value] || (value ? String(value) : 'Sin categoría'); }
 
-  const SHOP_SECTION_DEFINITIONS = Array.isArray(window.CASA_GLICK_SHOP_SECTION_SCHEMA) ? window.CASA_GLICK_SHOP_SECTION_SCHEMA : [];
-  const WEBSITE_SECTION_DEFINITIONS = Array.isArray(window.CASA_GLICK_WEBSITE_SECTION_SCHEMA) ? window.CASA_GLICK_WEBSITE_SECTION_SCHEMA : [];
+  function imageAltKey(imageKey){
+    const key=String(imageKey||'');
+    return /Url$/.test(key)?key.replace(/Url$/,'Alt'):`${key}Alt`;
+  }
+  function withImageAltFields(definitions=[]){
+    return definitions.map(def=>{
+      const fields=Array.isArray(def?.fields)?def.fields:[];
+      const existing=new Set(fields.map(field=>field?.key).filter(Boolean));
+      const expanded=[];
+      fields.forEach(field=>{
+        expanded.push(field);
+        if(field?.type!=='image')return;
+        const altKey=imageAltKey(field.key);
+        if(existing.has(altKey))return;
+        expanded.push({key:altKey,label:`Texto alternativo · ${field.label||'Imagen'}`,type:'text',wide:true,placeholder:'Describe brevemente lo que aparece en la imagen',maxLength:180,isImageAlt:true,imageField:field.key});
+      });
+      return {...def,fields:expanded,defaults:{...(def?.defaults||{})}};
+    });
+  }
+  const SHOP_SECTION_DEFINITIONS = withImageAltFields(Array.isArray(window.CASA_GLICK_SHOP_SECTION_SCHEMA) ? window.CASA_GLICK_SHOP_SECTION_SCHEMA : []);
+  const WEBSITE_SECTION_DEFINITIONS = withImageAltFields(Array.isArray(window.CASA_GLICK_WEBSITE_SECTION_SCHEMA) ? window.CASA_GLICK_WEBSITE_SECTION_SCHEMA : []);
   const activeDefinitions = () => state.activeWebSite === 'website' ? WEBSITE_SECTION_DEFINITIONS : SHOP_SECTION_DEFINITIONS;
   const activeSiteName = () => state.activeWebSite === 'website' ? 'Casa Glick' : 'Shop';
   const CONTENT_FIELDS = ['eyebrow','title','description','imageUrl','buttonText','buttonUrl'];
@@ -40,7 +59,7 @@
     const remote=Array.isArray(raw?.schema?.sections)?raw.schema.sections:[];
     const byKey=new Map();
     [...remote,...activeDefinitions()].forEach(def=>{ if(def?.key) byKey.set(def.key,{...byKey.get(def.key),...def}); });
-    return [...byKey.values()];
+    return withImageAltFields([...byKey.values()]);
   }
   function normalizeSectionOrder(order,definitions){
     const keys=definitions.map(def=>def.key);
@@ -82,7 +101,10 @@
     if(field.type==='toggle') return `<label class="toggle-row shop-field-toggle ${wide.trim()}"><span>${esc(field.label)}</span><input type="checkbox" data-section-key="${key}" data-section-field="${field.key}" ${value!==false&&value!=='false'?'checked':''}><i></i></label>`;
     if(field.type==='image') return `<div class="shop-section-image"><div class="shop-section-image__preview"><img data-section-preview="${key}:${field.key}" src="${esc(value||FALLBACK_IMAGE)}" alt="Vista previa de ${esc(def.label)}"></div><div class="shop-section-image__fields"><label><span>URL de imagen</span><input type="url" data-section-key="${key}" data-section-field="${field.key}" value="${esc(value)}" placeholder="https://..."></label><label class="shop-section-image__upload"><input type="file" accept="image/*" data-section-upload="${key}" data-section-upload-field="${field.key}"><span>Subir imagen desde el equipo</span></label><small class="shop-section-image__progress" data-section-progress="${key}:${field.key}"></small></div></div>`;
     const inputType=field.type==='url'?'url':'text';
-    return `<label class="${wide.trim()}"><span>${esc(field.label)}</span><input type="${inputType}" data-section-key="${key}" data-section-field="${field.key}" value="${esc(value)}"></label>`;
+    const placeholder=field.placeholder?` placeholder="${esc(field.placeholder)}"`:'';
+    const maxLength=Number(field.maxLength)>0?` maxlength="${Number(field.maxLength)}"`:'';
+    const help=field.isImageAlt?'<small class="shop-field-help">Describe la imagen de forma natural. Déjalo vacío sólo si es decorativa.</small>':'';
+    return `<label class="${wide.trim()}"><span>${esc(field.label)}</span><input type="${inputType}" data-section-key="${key}" data-section-field="${field.key}" value="${esc(value)}"${placeholder}${maxLength}>${help}</label>`;
   }
   function renderShopContent(){
     const list=$('#shop-content-list'); if(!list)return;
@@ -429,7 +451,7 @@
       if(!header||e.target.closest('label')||e.target.closest('.shop-section-card__drag'))return;
       header.closest('.shop-section-card')?.classList.toggle('is-open');
     });
-    $('#shop-content-list')?.addEventListener('input',e=>{ const input=e.target.closest('[data-section-field]'); if(!input)return; const status=$('#shop-content-status'); if(status){status.textContent='Cambios sin guardar';status.classList.remove('is-saved');} if(input.dataset.sectionField==='imageUrl'){ const preview=$(`[data-section-preview="${input.dataset.sectionKey}"]`); if(preview)preview.src=input.value.trim()||FALLBACK_IMAGE; } });
+    $('#shop-content-list')?.addEventListener('input',e=>{ const input=e.target.closest('[data-section-field]'); if(!input)return; const status=$('#shop-content-status'); if(status){status.textContent='Cambios sin guardar';status.classList.remove('is-saved');} if(/Url$/.test(input.dataset.sectionField||'')){ const token=`${input.dataset.sectionKey}:${input.dataset.sectionField}`; const preview=$(`[data-section-preview="${token}"]`); if(preview)preview.src=input.value.trim()||FALLBACK_IMAGE; } });
     $('#shop-content-list')?.addEventListener('change',async e=>{ const fileInput=e.target.closest('[data-section-upload]'); if(!fileInput||!fileInput.files?.[0])return; const key=fileInput.dataset.sectionUpload; const field=fileInput.dataset.sectionUploadField||'imageUrl'; const token=`${key}:${field}`; const progress=$(`[data-section-progress="${token}"]`); const file=fileInput.files[0]; if(progress)progress.textContent='Subiendo a GoDaddy…'; fileInput.disabled=true; try{ const url=await cloud.uploadShopContentImage(key,file,state.activeWebSite); const content=collectShopContent(); if(!content.sections[key])content.sections[key]={}; content.sections[key][field]=url; const payload=shopContentPayload(content); await cloud.saveWebContent(state.activeWebSite,payload); state.shopContent=normalizeShopContent(payload); const urlInput=$(`[data-section-key="${key}"][data-section-field="${field}"]`); const preview=$(`[data-section-preview="${token}"]`); if(urlInput)urlInput.value=url; if(preview)preview.src=url; if(progress)progress.textContent=`Imagen publicada en ${activeSiteName()}.`; const status=$('#shop-content-status'); if(status){status.textContent='Imagen sincronizada';status.classList.add('is-saved');} toast(`Imagen subida y actualizada en ${activeSiteName()}.`); }catch(error){console.error(error);if(progress)progress.textContent=error?.message||'No se pudo subir la imagen.';toast('No se pudo publicar la imagen.');}finally{fileInput.disabled=false;fileInput.value='';} });
     $('#web-design-site')?.addEventListener('change',async e=>{ state.activeWebSite=e.target.value==='website'?'website':'shop'; state.shopContent={}; const description=$('#web-design-description'); if(description)description.textContent=state.activeWebSite==='website'?'Administra el contenido, la visibilidad y el orden de las secciones de casaglick.com.':'Administra el contenido, la visibilidad y el orden de las secciones de shop.casaglick.com.'; const status=$('#shop-content-status'); if(status){status.textContent='Cargando…';status.classList.remove('is-saved');} await loadShopContent(); });
     $('#save-shop-content')?.addEventListener('click',async()=>{ const button=$('#save-shop-content'); const data=collectShopContent(); const payload=shopContentPayload(data); button.disabled=true; try{ await cloud.saveWebContent(state.activeWebSite,payload); state.shopContent=normalizeShopContent(payload); const status=$('#shop-content-status'); if(status){status.textContent='Guardado';status.classList.add('is-saved');} toast(`Contenido y visibilidad de ${activeSiteName()} guardados en Firebase.`); }catch(error){console.error(error);toast(`No se pudo guardar el contenido de ${activeSiteName()}.`);}finally{button.disabled=false;} });
