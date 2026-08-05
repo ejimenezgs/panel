@@ -6,8 +6,10 @@ const MAX_UPLOAD_BYTES = 8388608; // 8 MB
 const MAX_IMAGE_PIXELS = 30000000;
 const MAX_OUTPUT_EDGE = 3000;
 const WEBP_QUALITY = 86;
-const ASSET_PUBLIC_BASE = 'https://casaglick.com/assets/casa-glick';
-const ASSET_PHYSICAL_BASE = '/home/gyu5la0fbzjq/public_html/casaglick.com/assets/casa-glick';
+const SHOP_ASSET_PUBLIC_BASE = 'https://shop.casaglick.com/uploads';
+const SHOP_ASSET_PHYSICAL_BASE = '/home/gyu5la0fbzjq/public_html/shop/uploads';
+const WEBSITE_ASSET_PUBLIC_BASE = 'https://casaglick.com/assets/casa-glick/website-content';
+const WEBSITE_ASSET_PHYSICAL_BASE = '/home/gyu5la0fbzjq/public_html/casaglick.com/assets/casa-glick/website-content';
 const SUPER_ADMIN_UID = 'nJIkImK4cDdiXghn8wYecqyw1M03';
 const ADMIN_EMAILS = [
     'hello@oaxsun.tech',
@@ -158,24 +160,23 @@ try {
     $height = (int)$size[1];
     if ($width * $height > MAX_IMAGE_PIXELS) throw new RuntimeException('La imagen tiene dimensiones demasiado grandes.');
 
-    // Resolve the shared /public_html root from the endpoint location instead of
-    // relying on DOCUMENT_ROOT, which may point to the panel subdomain folder.
-    $cursor = __DIR__;
-    $publicHtml = null;
-    for ($i = 0; $i < 8; $i++) {
-        if (basename($cursor) === 'public_html') {
-            $publicHtml = $cursor;
-            break;
-        }
-        $parent = dirname($cursor);
-        if ($parent === $cursor) break;
-        $cursor = $parent;
+    // Shop uses its own persistent uploads directory, outside the Shop repository.
+    // Website uploads keep their existing independent destination.
+    if ($scope === 'shop-content') {
+        $uploadRoot = SHOP_ASSET_PHYSICAL_BASE;
+        $publicBase = SHOP_ASSET_PUBLIC_BASE;
+    } else {
+        $uploadRoot = WEBSITE_ASSET_PHYSICAL_BASE;
+        $publicBase = WEBSITE_ASSET_PUBLIC_BASE;
     }
-    if (!$publicHtml) throw new RuntimeException('No fue posible localizar la carpeta public_html.');
 
-    $uploadRoot = getenv('CASA_GLICK_ASSET_ROOT') ?: ASSET_PHYSICAL_BASE . DIRECTORY_SEPARATOR . $scope;
-    $targetDir = rtrim($uploadRoot, '/') . '/' . $section;
-    if (!is_dir($targetDir) && !mkdir($targetDir, 0755, true) && !is_dir($targetDir)) throw new RuntimeException('No fue posible crear la carpeta universal de imágenes.');
+    $targetDir = rtrim($uploadRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $section;
+    if (!is_dir($targetDir) && !mkdir($targetDir, 0755, true) && !is_dir($targetDir)) {
+        throw new RuntimeException('No fue posible crear la carpeta de imágenes del sitio seleccionado.');
+    }
+    if (!is_writable($targetDir)) {
+        throw new RuntimeException('La carpeta de imágenes no tiene permisos de escritura.');
+    }
 
     $protection = rtrim($uploadRoot, '/') . '/.htaccess';
     if (!is_file($protection)) {
@@ -197,7 +198,7 @@ try {
 
     respond(201, [
         'ok' => true,
-        'url' => ASSET_PUBLIC_BASE . '/' . rawurlencode($scope) . '/' . rawurlencode($section) . '/' . rawurlencode($filename),
+        'url' => rtrim($publicBase, '/') . '/' . rawurlencode($section) . '/' . rawurlencode($filename),
         'section' => $section,
         'filename' => $filename,
     ]);
