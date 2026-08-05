@@ -72,7 +72,7 @@ function loadAdmin() {
   if (adminLoaded) return;
   adminLoaded = true;
   const script = document.createElement('script');
-  script.src = 'js/admin.js?v=46-content-persistence-fix';
+  script.src = 'js/admin.js?v=45imagealt';
   script.defer = true;
   document.body.appendChild(script);
 }
@@ -172,15 +172,6 @@ const websiteContentRef = doc(db, 'websiteContent', 'home');
         updatedAt: serverTimestamp(),
         updatedBy: auth.currentUser?.email || ''
       }, { merge: true });
-    },
-    async saveWebContentField(siteKey = 'shop', sectionKey, fieldKey, value) {
-      const ref = siteKey === 'website' ? websiteContentRef : shopContentRef;
-      if (!sectionKey || !fieldKey) throw new Error('Campo de Web Design invalido.');
-      await updateDoc(ref, {
-        [`sections.${sectionKey}.${fieldKey}`]: value,
-        updatedAt: serverTimestamp(),
-        updatedBy: auth.currentUser?.email || ''
-      });
     },
     async loadShopContent() { return this.loadWebContent('shop'); },
     async saveShopContent(data) {

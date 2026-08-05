@@ -13,3 +13,9 @@
 - Se añadió un campo de texto alternativo para cada imagen editable en ambos sitios.
 - Máximo recomendado en el Panel: 180 caracteres.
 - Shop y Casa Glick deben leer la clave Alt correspondiente y aplicarla al elemento visual semántico.
+
+## v48
+
+- `.cpanel.yml` ahora despliega la carpeta `api` y el endpoint alternativo de raíz.
+- Se evita que producción conserve una versión antigua del cargador de imágenes.
+- No se cambian documentos ni nombres de campos de Firebase.
