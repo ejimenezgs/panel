@@ -130,9 +130,10 @@
     try{
       const raw=await cloud.loadWebContent(state.activeWebSite);
       state.shopContent=normalizeShopContent(raw);
-      if(needsSchemaSync(raw,state.shopContent)){
-        await cloud.saveWebContent(state.activeWebSite,shopContentPayload(state.shopContent));
-      }
+      // Never persist normalized/default content just because the schema changed.
+      // Schema upgrades are UI-only until the administrator explicitly saves.
+      // This prevents defaults or stale mirrored sections from overwriting URLs
+      // and text that already exist in Firebase.
       renderShopContent();
       const status=$('#shop-content-status'); if(status){status.textContent='Sincronizado';status.classList.add('is-saved');}
     } catch(error){ console.error(error); state.shopContent=normalizeShopContent(); renderShopContent(); toast(`No se pudo cargar el contenido de ${activeSiteName()}.`); }

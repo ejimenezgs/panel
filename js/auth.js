@@ -72,7 +72,7 @@ function loadAdmin() {
   if (adminLoaded) return;
   adminLoaded = true;
   const script = document.createElement('script');
-  script.src = 'js/admin.js?v=45imagealt';
+  script.src = 'js/admin.js?v=46-content-persistence-fix';
   script.defer = true;
   document.body.appendChild(script);
 }
