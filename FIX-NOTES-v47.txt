@@ -1,0 +1,6 @@
+Casa Glick Panel v47
+- sections.<seccion> is the canonical Web Design structure.
+- New image uploads persist only the exact field that changed.
+- Full image payloads are no longer written during an upload.
+- Legacy top-level sections remain readable as fallback only.
+- Absolute assets.casaglick.com URLs are preserved exactly.
