@@ -1,0 +1,7 @@
+Casa Glick Panel v1.2.1
+
+Correcciones:
+- sections es la fuente canonica al normalizar contenido.
+- La carga inicial ya no reescribe Firebase automaticamente.
+- Una subida de imagen actualiza unicamente sections.{seccion}.{campo}.
+- La URL absoluta devuelta por assets.casaglick.com se guarda sin reconstruirla.

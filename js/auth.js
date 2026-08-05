@@ -72,7 +72,7 @@ function loadAdmin() {
   if (adminLoaded) return;
   adminLoaded = true;
   const script = document.createElement('script');
-  script.src = 'js/admin.js?v=45imagealt';
+  script.src = 'js/admin.js?v=1201-casaglick-image-fix';
   script.defer = true;
   document.body.appendChild(script);
 }
@@ -172,6 +172,14 @@ const websiteContentRef = doc(db, 'websiteContent', 'home');
         updatedAt: serverTimestamp(),
         updatedBy: auth.currentUser?.email || ''
       }, { merge: true });
+    },
+    async saveWebContentImage(siteKey = 'shop', sectionKey, fieldKey, imageUrl) {
+      const ref = siteKey === 'website' ? websiteContentRef : shopContentRef;
+      await updateDoc(ref, {
+        [`sections.${sectionKey}.${fieldKey}`]: imageUrl,
+        updatedAt: serverTimestamp(),
+        updatedBy: auth.currentUser?.email || ''
+      });
     },
     async loadShopContent() { return this.loadWebContent('shop'); },
     async saveShopContent(data) {
